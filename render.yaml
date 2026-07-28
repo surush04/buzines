@@ -1,14 +1,21 @@
-# Free hosting on Render.com — https://render.com
-# Steps: GitHub push → Render → New Blueprint → connect repo → add GROQ_API_KEY
+# Render Blueprint — https://render.com
+# Deploy: Dashboard → New → Blueprint → connect GitHub repo → add GROQ_API_KEY
+#
+# IMPORTANT: use Blueprint (this file). Do NOT create a generic "Node Web Service"
+# from repo root — Render will use Railpack and fail with "No start command".
 
 services:
   - type: web
     name: buzines-api
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     plan: free
     healthCheckPath: /api/v1/health
+    buildFilter:
+      paths:
+        - backend/**
     envVars:
       - key: NODE_ENV
         value: production
@@ -28,9 +35,13 @@ services:
   - type: web
     name: buzines-web
     runtime: static
+    rootDir: frontend
     plan: free
-    buildCommand: cd frontend && npm ci && npm run build
-    staticPublishPath: frontend/dist/frontend/browser
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist/frontend/browser
+    buildFilter:
+      paths:
+        - frontend/**
     envVars:
       - key: NODE_VERSION
         value: "22"
