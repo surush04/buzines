@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://buzines-api.onrender.com/api/v1',
-  wsUrl: 'https://buzines-api.onrender.com/events',
+  apiUrl: 'https://buzines-api-production.up.railway.app/api/v1',
+  wsUrl: 'https://buzines-api-production.up.railway.app/events',
 };

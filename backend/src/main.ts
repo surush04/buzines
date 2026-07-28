@@ -32,6 +32,8 @@ async function bootstrap() {
         allowed.includes(origin) ||
         /\.trycloudflare\.com$/i.test(origin) ||
         /\.onrender\.com$/i.test(origin) ||
+        /\.railway\.app$/i.test(origin) ||
+        /\.up\.railway\.app$/i.test(origin) ||
         /\.vercel\.app$/i.test(origin) ||
         /\.loca\.lt$/i.test(origin)
       ) {
