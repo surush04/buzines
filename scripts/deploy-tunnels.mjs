@@ -67,15 +67,16 @@ function patchEnvironment(apiUrl, wsUrl) {
 }
 
 function killPort(port) {
-  spawnSync(
-    'powershell',
-    [
-      '-NoProfile',
-      '-Command',
-      `$p = Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -Expand OwningProcess -Unique; foreach ($id in $p) { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue }`,
-    ],
-    { shell: true, stdio: 'ignore' },
-  );
+  const find = spawnSync('netstat', ['-ano'], { shell: true, encoding: 'utf8' });
+  const pids = new Set();
+  for (const line of find.stdout.split('\n')) {
+    if (!line.includes(`:${port}`) || !line.includes('LISTENING')) continue;
+    const pid = Number(line.trim().split(/\s+/).pop());
+    if (pid > 0) pids.add(pid);
+  }
+  for (const pid of pids) {
+    spawnSync('taskkill', ['/PID', String(pid), '/F'], { shell: true, stdio: 'ignore' });
+  }
 }
 
 function waitForPort(port, timeoutMs = 30000) {
@@ -118,10 +119,13 @@ function startStaticServer(port) {
   const child = spawn(
     'npx',
     ['--yes', 'serve', '-s', distDir, '-l', String(port), '--no-clipboard'],
-    { shell: true, stdio: ['ignore', 'pipe', 'pipe'] },
+    { shell: true, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, PORT: String(port) } },
   );
   child.stdout.on('data', (chunk) => process.stdout.write(chunk));
   child.stderr.on('data', (chunk) => process.stderr.write(chunk));
+  child.on('exit', (code) => {
+    if (code) console.error(`Static server exited with code ${code}`);
+  });
   return child;
 }
 
