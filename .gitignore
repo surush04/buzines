@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+.DS_Store
+public-urls.txt
+backend/node_modules/
+frontend/node_modules/
+backend/dist/
+frontend/dist/
+*.log
