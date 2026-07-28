@@ -1,7 +1,8 @@
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+builder = "RAILPACK"
+buildCommand = "npm ci && node scripts/patch-env.mjs && npm run build"
 
 [deploy]
+startCommand = "sh start.sh"
 healthcheckPath = "/"
 restartPolicyType = "ON_FAILURE"
