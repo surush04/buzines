@@ -1,0 +1,8 @@
+[build]
+builder = "RAILPACK"
+buildCommand = "npm ci --prefix backend && npm run build --prefix backend && cd backend && npx prisma generate"
+
+[deploy]
+startCommand = "sh backend/start.sh"
+healthcheckPath = "/api/v1/health"
+restartPolicyType = "ON_FAILURE"

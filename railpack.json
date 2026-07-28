@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "node",
+  "packages": {
+    "node": "22"
+  },
+  "steps": {
+    "install": {
+      "commands": ["npm ci --prefix backend"]
+    },
+    "build": {
+      "inputs": [{ "step": "install" }],
+      "commands": [
+        "cd backend && npx prisma generate",
+        "npm run build --prefix backend"
+      ]
+    }
+  },
+  "deploy": {
+    "startCommand": "sh backend/start.sh"
+  }
+}
