@@ -2,19 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const configService = app.get(ConfigService);
-
-  const frontendUrl = configService.get<string>('frontendUrl') ?? 'http://localhost:4201';
-  const extraOrigins = (process.env.CORS_ORIGINS ?? '')
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
-
-  const isAllowedOrigin = (origin: string): boolean => {
+function buildCorsOriginChecker(
+  frontendUrl: string,
+  extraOrigins: string[],
+): (origin: string) => boolean {
+  return (origin: string): boolean => {
     const allowed = [
       frontendUrl,
       'http://localhost:4200',
@@ -37,7 +32,47 @@ async function bootstrap() {
     ];
     return patterns.some((pattern) => pattern.test(origin));
   };
+}
 
+function corsMiddleware(isAllowedOrigin: (origin: string) => boolean) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin;
+    if (typeof origin === 'string' && isAllowedOrigin(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader(
+        'Access-Control-Allow-Methods',
+        'GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS',
+      );
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, Accept, X-Requested-With',
+      );
+      res.setHeader('Access-Control-Max-Age', '86400');
+    }
+
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+
+    next();
+  };
+}
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+
+  const frontendUrl = configService.get<string>('frontendUrl') ?? 'http://localhost:4201';
+  const extraOrigins = (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const isAllowedOrigin = buildCorsOriginChecker(frontendUrl, extraOrigins);
+
+  app.use(corsMiddleware(isAllowedOrigin));
   app.enableCors({
     origin: (
       origin: string | undefined,
