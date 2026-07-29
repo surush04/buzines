@@ -56,9 +56,9 @@ export class NotificationService {
       return { sent: false, reason: 'username_needs' };
     }
 
-    if (!this.telegramUser.isConfigured()) {
+    if (!(await this.telegramUser.isConfigured(employee.companyId))) {
       this.logger.warn(
-        'Telegram: TELEGRAM_API_ID ва TELEGRAM_API_HASH дар backend/.env гузоред (my.telegram.org)',
+        'Telegram: API ID/Hash дар Танзимот → Telegram гузоред (my.telegram.org)',
       );
       return { sent: false, reason: 'api_not_configured' };
     }
@@ -90,7 +90,7 @@ export class NotificationService {
   telegramReasonMessage(reason?: string): string {
     const map: Record<string, string> = {
       username_needs: 'Коргар username надорад',
-      api_not_configured: 'API ID/Hash дар .env гузоред',
+      api_not_configured: 'API ID/Hash дар Танзимот → Telegram гузоред',
       account_not_connected: 'Telegram-и шахсӣ пайваст нест — Танзимот → OTP',
       send_failed: 'Ирсол номуваффақ',
       username_invalid: 'Username нодуруст ё вуҷуд надорад',

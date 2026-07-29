@@ -138,6 +138,19 @@ export class ApiService {
     return this.http.get<any>(`${this.base}/telegram/companies/${companyId}/user/status`);
   }
 
+  getTelegramApiCredentials(companyId: string) {
+    return this.http.get<{ configured: boolean; apiId: number | null; apiHash: string; source: string }>(
+      `${this.base}/telegram/companies/${companyId}/api-credentials`,
+    );
+  }
+
+  saveTelegramApiCredentials(companyId: string, apiId: number, apiHash: string) {
+    return this.http.post<{ configured: boolean; apiId: number | null; apiHash: string; source: string }>(
+      `${this.base}/telegram/companies/${companyId}/api-credentials`,
+      { apiId, apiHash },
+    );
+  }
+
   sendTelegramUserCode(companyId: string, phone: string) {
     return this.http.post<any>(`${this.base}/telegram/companies/${companyId}/user/send-code`, { phone });
   }

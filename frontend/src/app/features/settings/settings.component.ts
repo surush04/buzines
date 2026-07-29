@@ -41,6 +41,28 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
           </div>
         } @else {
           <div class="space-y-4">
+            <div class="rounded-xl border border-slate-200/60 p-4 dark:border-slate-700">
+              <p class="mb-3 text-xs font-medium text-slate-700 dark:text-slate-300">{{ 'settings.apiCredentialsTitle' | t }}</p>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label class="mb-1 block text-xs text-slate-500">{{ 'settings.apiId' | t }}</label>
+                  <input [(ngModel)]="telegramApiId" type="number" class="input-field" [placeholder]="'settings.apiIdPlaceholder' | t" />
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs text-slate-500">{{ 'settings.apiHash' | t }}</label>
+                  <input [(ngModel)]="telegramApiHash" type="text" class="input-field" [placeholder]="'settings.apiHashPlaceholder' | t" />
+                </div>
+              </div>
+              <div class="mt-3 flex flex-wrap items-center gap-2">
+                <button class="btn-secondary !text-xs" (click)="saveTelegramApiCredentials()" [disabled]="telegramLoading() || !telegramApiId || !telegramApiHash.trim()">
+                  {{ telegramLoading() ? '...' : ('settings.saveApiCredentials' | t) }}
+                </button>
+                @if (userTelegram()?.configured) {
+                  <span class="text-xs text-emerald-600">{{ 'settings.apiConfigured' | t }}</span>
+                }
+              </div>
+            </div>
+
             <div class="rounded-xl border border-slate-200/60 p-4 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-400">
               <p class="font-medium mb-2">{{ 'settings.stepsTitle' | t }}</p>
               <ol class="list-decimal space-y-1 pl-4">
@@ -157,6 +179,8 @@ export class SettingsComponent implements OnInit {
   telegramLoading = signal(false);
   telegramError = signal('');
   phone = '+992000406246';
+  telegramApiId: number | null = null;
+  telegramApiHash = '';
   otpCode = '';
   password2fa = '';
   codeSent = signal(false);
@@ -166,6 +190,7 @@ export class SettingsComponent implements OnInit {
     this.companyContext.ensureCompany().subscribe({
       next: (id) => {
         this.loadUserTelegram();
+        this.loadTelegramApiCredentials();
         this.api.getCompany(id).subscribe({
           next: (company) => {
             if (company.settings) Object.assign(this.settings, company.settings);
@@ -185,7 +210,38 @@ export class SettingsComponent implements OnInit {
     this.api.getTelegramUserStatus(id).subscribe({
       next: (s) => {
         this.userTelegram.set(s);
+        if (s.apiId) this.telegramApiId = s.apiId;
+        if (s.apiHash) this.telegramApiHash = s.apiHash;
         this.telegramLoading.set(false);
+      },
+      error: (err) => {
+        this.telegramLoading.set(false);
+        this.telegramError.set(err.error?.message ?? this.i18n.t('settings.error'));
+      },
+    });
+  }
+
+  loadTelegramApiCredentials() {
+    const id = this.companyContext.companyId();
+    if (!id) return;
+    this.api.getTelegramApiCredentials(id).subscribe({
+      next: (c) => {
+        if (c.apiId) this.telegramApiId = c.apiId;
+        if (c.apiHash) this.telegramApiHash = c.apiHash;
+      },
+    });
+  }
+
+  saveTelegramApiCredentials() {
+    const id = this.companyContext.companyId();
+    if (!id || !this.telegramApiId || !this.telegramApiHash.trim()) return;
+    this.telegramLoading.set(true);
+    this.telegramError.set('');
+    this.api.saveTelegramApiCredentials(id, this.telegramApiId, this.telegramApiHash.trim()).subscribe({
+      next: () => {
+        this.telegramLoading.set(false);
+        this.saveMsg.set(this.i18n.t('settings.apiCredentialsSaved'));
+        this.loadUserTelegram();
       },
       error: (err) => {
         this.telegramLoading.set(false);

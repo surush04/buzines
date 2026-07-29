@@ -52,15 +52,85 @@ export class TelegramUserService implements OnModuleInit {
     }
   }
 
-  private getApiCredentials() {
-    const apiId = parseInt(this.configService.get<string>('telegram.apiId') ?? '0', 10);
-    const apiHash = this.configService.get<string>('telegram.apiHash') ?? '';
-    return { apiId, apiHash };
+  private async getIntegrationConfig(companyId: string): Promise<Record<string, unknown>> {
+    const integration = await this.prisma.integration.findUnique({
+      where: { companyId_type: { companyId, type: 'TELEGRAM_USER' } },
+    });
+    return (integration?.config as Record<string, unknown>) ?? {};
   }
 
-  isConfigured() {
-    const { apiId, apiHash } = this.getApiCredentials();
+  private async mergeIntegrationConfig(
+    companyId: string,
+    patch: Record<string, unknown>,
+    isActive?: boolean,
+  ) {
+    const config = { ...(await this.getIntegrationConfig(companyId)), ...patch };
+    await this.prisma.integration.upsert({
+      where: { companyId_type: { companyId, type: 'TELEGRAM_USER' } },
+      create: {
+        companyId,
+        type: 'TELEGRAM_USER',
+        isActive: isActive ?? false,
+        config,
+      },
+      update: {
+        ...(isActive !== undefined ? { isActive } : {}),
+        config,
+      },
+    });
+  }
+
+  private async getApiCredentials(companyId: string) {
+    const config = await this.getIntegrationConfig(companyId);
+    const fromDbId = config.apiId != null ? parseInt(String(config.apiId), 10) : 0;
+    const fromDbHash = typeof config.apiHash === 'string' ? config.apiHash.trim() : '';
+
+    if (fromDbId > 0 && fromDbHash.length > 0) {
+      return { apiId: fromDbId, apiHash: fromDbHash, source: 'panel' as const };
+    }
+
+    const apiId = parseInt(this.configService.get<string>('telegram.apiId') ?? '0', 10);
+    const apiHash = (this.configService.get<string>('telegram.apiHash') ?? '').trim();
+    return {
+      apiId,
+      apiHash,
+      source: apiId > 0 && apiHash.length > 0 ? ('env' as const) : ('none' as const),
+    };
+  }
+
+  async isConfigured(companyId: string) {
+    const { apiId, apiHash } = await this.getApiCredentials(companyId);
     return apiId > 0 && apiHash.length > 0;
+  }
+
+  isConfiguredFromEnv() {
+    const apiId = parseInt(this.configService.get<string>('telegram.apiId') ?? '0', 10);
+    const apiHash = (this.configService.get<string>('telegram.apiHash') ?? '').trim();
+    return apiId > 0 && apiHash.length > 0;
+  }
+
+  async getApiCredentialsStatus(companyId: string) {
+    const { apiId, apiHash, source } = await this.getApiCredentials(companyId);
+    return {
+      configured: apiId > 0 && apiHash.length > 0,
+      apiId: apiId > 0 ? apiId : null,
+      apiHash: apiHash || '',
+      source,
+    };
+  }
+
+  async saveApiCredentials(companyId: string, apiId: number, apiHash: string) {
+    const normalizedId = Number(apiId);
+    const normalizedHash = apiHash.trim();
+    if (!Number.isFinite(normalizedId) || normalizedId <= 0 || !normalizedHash) {
+      throw new Error('API ID ва API Hash-ро дуруст ворид кунед (my.telegram.org)');
+    }
+
+    await this.mergeIntegrationConfig(companyId, {
+      apiId: normalizedId,
+      apiHash: normalizedHash,
+    });
+    return this.getApiCredentialsStatus(companyId);
   }
 
   isConnected(companyId: string) {
@@ -72,8 +142,12 @@ export class TelegramUserService implements OnModuleInit {
       where: { companyId_type: { companyId, type: 'TELEGRAM_USER' } },
     });
     const config = (integration?.config ?? {}) as { username?: string; phone?: string };
+    const credentials = await this.getApiCredentialsStatus(companyId);
     return {
-      configured: this.isConfigured(),
+      configured: credentials.configured,
+      apiId: credentials.apiId,
+      apiHash: credentials.apiHash,
+      credentialsSource: credentials.source,
       connected: this.isConnected(companyId),
       username: config.username ?? null,
       phone: config.phone ?? null,
@@ -122,29 +196,12 @@ export class TelegramUserService implements OnModuleInit {
     phoneCodeHash: string,
     isCodeViaApp?: boolean,
   ) {
-    await this.prisma.integration.upsert({
-      where: { companyId_type: { companyId, type: 'TELEGRAM_USER' } },
-      create: {
-        companyId,
-        type: 'TELEGRAM_USER',
-        isActive: false,
-        config: {
-          pendingPhone: phone,
-          phoneCodeHash,
-          isCodeViaApp,
-          pendingAt: new Date().toISOString(),
-        },
-      },
-      update: {
-        isActive: false,
-        config: {
-          pendingPhone: phone,
-          phoneCodeHash,
-          isCodeViaApp,
-          pendingAt: new Date().toISOString(),
-        },
-      },
-    });
+    await this.mergeIntegrationConfig(companyId, {
+      pendingPhone: phone,
+      phoneCodeHash,
+      isCodeViaApp,
+      pendingAt: new Date().toISOString(),
+    }, false);
   }
 
   private async restorePendingAuth(companyId: string): Promise<PendingAuth | null> {
@@ -165,7 +222,7 @@ export class TelegramUserService implements OnModuleInit {
       if (ageMs > 10 * 60 * 1000) return null;
     }
 
-    const { apiId, apiHash } = this.getApiCredentials();
+    const { apiId, apiHash } = await this.getApiCredentials(companyId);
     const client = new TelegramClient(new StringSession(''), apiId, apiHash, this.getClientOptions());
     await this.withTimeout(
       client.connect(),
@@ -203,9 +260,11 @@ export class TelegramUserService implements OnModuleInit {
   }
 
   async sendLoginCode(companyId: string, phone: string) {
-    const { apiId, apiHash } = this.getApiCredentials();
+    const { apiId, apiHash } = await this.getApiCredentials(companyId);
     if (!apiId || !apiHash) {
-      throw new Error('TELEGRAM_API_ID ва TELEGRAM_API_HASH дар .env гузоред (my.telegram.org)');
+      throw new Error(
+        'API ID ва API Hash-ро дар Танзимот → Telegram ворид кунед (my.telegram.org)',
+      );
     }
 
     await this.clearPendingAuth(companyId);
@@ -301,19 +360,15 @@ export class TelegramUserService implements OnModuleInit {
     const me = await pending.client.getMe();
     const username = me.username ?? null;
 
-    await this.prisma.integration.upsert({
-      where: { companyId_type: { companyId, type: 'TELEGRAM_USER' } },
-      create: {
-        companyId,
-        type: 'TELEGRAM_USER',
-        isActive: true,
-        config: { session, phone: pending.phone, username },
-      },
-      update: {
-        isActive: true,
-        config: { session, phone: pending.phone, username },
-      },
-    });
+    await this.mergeIntegrationConfig(companyId, {
+      session,
+      phone: pending.phone,
+      username,
+      pendingPhone: undefined,
+      phoneCodeHash: undefined,
+      isCodeViaApp: undefined,
+      pendingAt: undefined,
+    }, true);
 
     this.clients.set(companyId, pending.client);
     this.pendingAuth.delete(companyId);
@@ -333,7 +388,7 @@ export class TelegramUserService implements OnModuleInit {
       this.clients.delete(companyId);
     }
 
-    const { apiId, apiHash } = this.getApiCredentials();
+    const { apiId, apiHash } = await this.getApiCredentials(companyId);
     const client = new TelegramClient(new StringSession(session), apiId, apiHash, this.getClientOptions());
     await this.withTimeout(
       client.connect(),
