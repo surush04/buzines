@@ -18,7 +18,11 @@ export class JwtAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<{ method?: string }>();
+    const request = context.switchToHttp().getRequest<{
+      method?: string;
+      headers: { authorization?: string };
+      user?: unknown;
+    }>();
     if (request.method === 'OPTIONS') return true;
 
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -27,7 +31,6 @@ export class JwtAuthGuard implements CanActivate {
     ]);
     if (isPublic) return true;
 
-    const request = context.switchToHttp().getRequest();
     const token = this.extractToken(request);
     if (!token) throw new UnauthorizedException('Authentication required');
 
