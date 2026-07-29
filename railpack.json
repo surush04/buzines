@@ -6,17 +6,17 @@
   },
   "steps": {
     "install": {
-      "commands": ["npm ci"]
+      "commands": ["npm ci --prefix frontend"]
     },
     "build": {
       "inputs": [{ "step": "install" }],
       "commands": [
-        "npx prisma generate",
-        "npm run build"
+        "cd frontend && node scripts/patch-env.mjs",
+        "npm run build --prefix frontend"
       ]
     }
   },
   "deploy": {
-    "startCommand": "npx prisma migrate deploy && node dist/main.js"
+    "startCommand": "npx serve -s frontend/dist/frontend/browser -l ${PORT:-8080}"
   }
 }

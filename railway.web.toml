@@ -1,0 +1,8 @@
+[build]
+builder = "RAILPACK"
+buildCommand = "npm ci --prefix frontend && cd frontend && node scripts/patch-env.mjs && npm run build"
+
+[deploy]
+startCommand = "npx serve -s frontend/dist/frontend/browser -l $PORT"
+healthcheckPath = "/"
+restartPolicyType = "ON_FAILURE"

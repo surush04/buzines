@@ -5,8 +5,15 @@
     "node": "22"
   },
   "steps": {
+    "install": {
+      "commands": ["npm ci"]
+    },
     "build": {
-      "commands": ["npm ci", "npm run build"]
+      "inputs": [{ "step": "install" }],
+      "commands": [
+        "node scripts/patch-env.mjs",
+        "npm run build"
+      ]
     }
   },
   "deploy": {
