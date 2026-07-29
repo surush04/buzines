@@ -8,7 +8,7 @@ import { NewMessage } from 'telegram/events';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AiEngineService } from '../ai/ai-engine.service';
 import { DirectiveService } from '../../modules/directives/directive.service';
-import { TaskStatus } from '@prisma/client';
+import { TaskStatus, Prisma } from '@prisma/client';
 
 interface PendingAuth {
   phone: string;
@@ -64,7 +64,7 @@ export class TelegramUserService implements OnModuleInit {
     patch: Record<string, unknown>,
     isActive?: boolean,
   ) {
-    const config = { ...(await this.getIntegrationConfig(companyId)), ...patch };
+    const config = { ...(await this.getIntegrationConfig(companyId)), ...patch } as Prisma.InputJsonValue;
     await this.prisma.integration.upsert({
       where: { companyId_type: { companyId, type: 'TELEGRAM_USER' } },
       create: {

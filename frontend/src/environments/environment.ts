@@ -1,5 +1,5 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://flat-geese-pay.loca.lt/api/v1',
-  wsUrl: 'https://flat-geese-pay.loca.lt/events',
+  apiUrl: 'http://127.0.0.1:3000/api/v1',
+  wsUrl: 'http://127.0.0.1:3000/events',
 };
