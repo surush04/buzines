@@ -14,34 +14,41 @@ async function bootstrap() {
     .map((o) => o.trim())
     .filter(Boolean);
 
+  const isAllowedOrigin = (origin: string): boolean => {
+    const allowed = [
+      frontendUrl,
+      'http://localhost:4200',
+      'http://localhost:4201',
+      'http://127.0.0.1:4200',
+      'http://127.0.0.1:4201',
+      ...extraOrigins,
+    ];
+    if (allowed.includes(origin)) return true;
+
+    const patterns = [
+      /^https?:\/\/localhost(:\d+)?$/,
+      /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+      /^https:\/\/[^/]+\.up\.railway\.app$/,
+      /^https:\/\/[^/]+\.railway\.app$/,
+      /^https:\/\/[^/]+\.onrender\.com$/,
+      /^https:\/\/[^/]+\.loca\.lt$/,
+      /^https:\/\/[^/]+\.trycloudflare\.com$/,
+      /^https:\/\/[^/]+\.vercel\.app$/,
+    ];
+    return patterns.some((pattern) => pattern.test(origin));
+  };
+
   app.enableCors({
     origin: (
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      if (!origin) return callback(null, true);
-      const allowed = [
-        frontendUrl,
-        'http://localhost:4200',
-        'http://localhost:4201',
-        'http://127.0.0.1:4200',
-        'http://127.0.0.1:4201',
-        ...extraOrigins,
-      ];
-      if (
-        allowed.includes(origin) ||
-        /\.trycloudflare\.com$/i.test(origin) ||
-        /\.onrender\.com$/i.test(origin) ||
-        /\.railway\.app$/i.test(origin) ||
-        /\.up\.railway\.app$/i.test(origin) ||
-        /\.vercel\.app$/i.test(origin) ||
-        /\.loca\.lt$/i.test(origin)
-      ) {
-        return callback(null, true);
-      }
+      if (!origin || isAllowedOrigin(origin)) return callback(null, true);
       callback(null, false);
     },
     credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
   });
 
   app.useGlobalPipes(
