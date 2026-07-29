@@ -3,7 +3,7 @@ export default () => ({
   nodeEnv: process.env.NODE_ENV ?? 'development',
   frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:4200',
   database: {
-    url: process.env.DATABASE_URL,
+    url: process.env.DATABASE_URL ?? 'file:./prod.db',
   },
   redis: {
     url: process.env.REDIS_URL ?? 'redis://localhost:6379',

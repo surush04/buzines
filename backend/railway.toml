@@ -1,8 +1,8 @@
 [build]
-builder = "RAILPACK"
-buildCommand = "npm ci && npx prisma generate && npm run build"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "npx prisma migrate deploy && node dist/main.js"
+startCommand = "sh start.sh"
 healthcheckPath = "/api/v1/health"
 restartPolicyType = "ON_FAILURE"
