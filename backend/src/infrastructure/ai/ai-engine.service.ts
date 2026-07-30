@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
-import { BusinessContextService, type AppLang } from './business-context.service';
+import { BusinessContextService, type AiLang } from './business-context.service';
 import { LlmService } from './llm.service';
 import {
   TaskCategory,
@@ -137,19 +137,14 @@ export class AiEngineService {
       },
     });
     if (!task) {
-      const lang = await this.businessContext.getCompanyLanguage(
+      const lang = await this.businessContext.getAiLanguage(
         (await this.prisma.employee.findUnique({ where: { id: employeeId }, select: { companyId: true } }))
           ?.companyId ?? '',
       );
       return {
         aiAnalysis: '',
         newStatus: undefined,
-        reply:
-          lang === 'ru'
-            ? 'Задача не найдена.'
-            : lang === 'en'
-              ? 'Task not found.'
-              : 'Вазифа ёфт нашуд.',
+        reply: lang === 'en' ? 'Task not found.' : 'Задача не найдена.',
       };
     }
 
@@ -300,7 +295,7 @@ export class AiEngineService {
       return 'Сотрудник не найден.';
     }
 
-    const lang = await this.businessContext.getCompanyLanguage(employee.companyId);
+    const lang = await this.businessContext.getAiLanguage(employee.companyId);
     const activeTask = employee.taskAssignments[0]?.task;
 
     if (!activeTask) {
@@ -379,10 +374,9 @@ export class AiEngineService {
     projectName: string,
     hoursSinceAssigned: number,
   ): Promise<string> {
-    const lang = await this.businessContext.getCompanyLanguage(companyId);
+    const lang = await this.businessContext.getAiLanguage(companyId);
     const locale = this.businessContext.localeForLang(lang);
-    const noDeadline =
-      lang === 'ru' ? 'не указан' : lang === 'en' ? 'not set' : 'муайян нашуда';
+    const noDeadline = this.businessContext.deadlineNotSetLabel(lang);
     const deadlineStr = task.deadline
       ? task.deadline.toLocaleDateString(locale, {
           day: 'numeric',
@@ -519,12 +513,11 @@ export class AiEngineService {
     }
 
     const systemPrefix = await this.businessContext.getSystemPromptPrefix(companyId);
-    const lang = await this.businessContext.getCompanyLanguage(companyId);
+    const lang = await this.businessContext.getAiLanguage(companyId);
 
-    const userPrompts: Record<'tg' | 'ru' | 'en', string> = {
+    const userPrompts: Record<AiLang, string> = {
       ru: 'Проведите полный анализ бизнеса: текущее состояние, сильные и слабые стороны, риски, возможности и конкретные действия.',
       en: 'Perform a full business analysis: current state, strengths, weaknesses, risks, opportunities, and concrete actions.',
-      tg: 'Тahлили пурраи бизнес: ҳолат, қувваҳо, заifiho, хatarho, imkoniyatҳо ва амалҳои конкретӣ.',
     };
 
     try {
@@ -747,18 +740,24 @@ Categories: FRONTEND, BACKEND, DESIGN, DATABASE, DEVOPS, TESTING, DOCUMENTATION,
     employee: { firstName: string; lastName: string },
     tasks: Array<{ title: string; deadline: Date | null }>,
   ): Promise<string> {
+    const lang = await this.businessContext.getAiLanguage(companyId);
+    const locale = this.businessContext.localeForLang(lang);
+    const noDeadline = lang === 'en' ? 'no deadline' : 'без срока';
+
     const taskList = tasks
       .slice(0, 5)
       .map((t, i) => {
         const dl = t.deadline
-          ? t.deadline.toLocaleDateString('tg-TJ', { day: 'numeric', month: 'short' })
-          : 'бе мӯҳлат';
+          ? t.deadline.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
+          : noDeadline;
         return `${i + 1}. ${t.title} (${dl})`;
       })
       .join('\n');
 
     if (!this.llm.isAvailable()) {
-      return `${employee.firstName}, салом!\n\nВазифаҳои имрӯза:\n${taskList}`;
+      return lang === 'en'
+        ? `${employee.firstName}, hello!\n\nToday's tasks:\n${taskList}`
+        : `${employee.firstName}, здравствуйте!\n\nЗадачи на сегодня:\n${taskList}`;
     }
 
     const systemPrefix = await this.businessContext.getSystemPromptPrefix(companyId);
@@ -769,7 +768,9 @@ Categories: FRONTEND, BACKEND, DESIGN, DATABASE, DEVOPS, TESTING, DOCUMENTATION,
             role: 'system',
             content:
               systemPrefix +
-              'Нaqшаи рӯзona барои коргар нависед — табиӣ, кӯтох, бе шаблони бot. Танҳо матни паём.',
+              (lang === 'en'
+                ? 'Write a daily plan for the employee — natural, short, no bot templates. Plain text only.'
+                : 'Напишите план на день для сотрудника — естественно, коротко, без шаблонов бота. Только русский текст.'),
           },
           {
             role: 'user',
@@ -783,7 +784,9 @@ Categories: FRONTEND, BACKEND, DESIGN, DATABASE, DEVOPS, TESTING, DOCUMENTATION,
 
     return (
       res.choices[0]?.message?.content?.trim() ??
-      `${employee.firstName}, салом!\n\n${taskList}`
+      (lang === 'en'
+        ? `${employee.firstName}, hello!\n\n${taskList}`
+        : `${employee.firstName}, здравствуйте!\n\n${taskList}`)
     );
   }
 
@@ -813,7 +816,7 @@ Categories: FRONTEND, BACKEND, DESIGN, DATABASE, DEVOPS, TESTING, DOCUMENTATION,
     },
     message: string,
   ): Promise<SmartEvaluation> {
-    const lang = await this.businessContext.getCompanyLanguage(companyId);
+    const lang = await this.businessContext.getAiLanguage(companyId);
     const locale = this.businessContext.localeForLang(lang);
     const deadlineStr = task.deadline
       ? task.deadline.toLocaleDateString(locale, {
@@ -952,7 +955,7 @@ Categories: FRONTEND, BACKEND, DESIGN, DATABASE, DEVOPS, TESTING, DOCUMENTATION,
     context: Record<string, unknown>,
     useLlm: boolean,
   ): Promise<string> {
-    const lang = await this.businessContext.getCompanyLanguage(companyId);
+    const lang = await this.businessContext.getAiLanguage(companyId);
     const name = context.employeeName as string;
     const msg = ((context.employeeMessage as string) ?? '').slice(0, 80);
 
@@ -1003,35 +1006,29 @@ Categories: FRONTEND, BACKEND, DESIGN, DATABASE, DEVOPS, TESTING, DOCUMENTATION,
     );
   }
 
-  private isCorrectLanguage(lang: AppLang, text: string): boolean {
+  private isCorrectLanguage(lang: AiLang, text: string): boolean {
     if (!text.trim()) return false;
     const cyrillic = (text.match(/[\u0400-\u04FF]/g) ?? []).length;
     if (lang === 'ru') {
       return cyrillic >= 6 && !this.looksLikeTajik(text);
     }
-    if (lang === 'en') {
-      const latin = (text.match(/[a-zA-Z]/g) ?? []).length;
-      return latin >= 8 && !this.looksLikeTajik(text) && cyrillic < latin;
-    }
-    return this.looksLikeTajik(text) || cyrillic >= 8;
+    const latin = (text.match(/[a-zA-Z]/g) ?? []).length;
+    return latin >= 8 && !this.looksLikeTajik(text) && cyrillic < latin;
   }
 
-  private enforceLanguageSync(lang: AppLang, reply: string): string {
+  private enforceLanguageSync(lang: AiLang, reply: string): string {
     if (!reply.trim()) return reply;
     if (this.isCorrectLanguage(lang, reply)) return reply;
 
-    if (lang === 'ru') {
-      return 'Понял ваше сообщение. Давайте уточним статус по текущей задаче — что уже сделано и что осталось?';
-    }
     if (lang === 'en') {
       return 'Understood. Please share the current status of your task — what is done and what remains?';
     }
-    return 'Фаҳмидам. Лутфан статуси вазифаро нависед.';
+    return 'Понял ваше сообщение. Давайте уточним статус по текущей задаче — что уже сделано и что осталось?';
   }
 
   private async enforceLanguage(
     companyId: string,
-    lang: AppLang,
+    lang: AiLang,
     reply: string,
     context: Record<string, unknown>,
   ): Promise<string> {
@@ -1045,13 +1042,13 @@ Categories: FRONTEND, BACKEND, DESIGN, DATABASE, DEVOPS, TESTING, DOCUMENTATION,
 
   private async rewriteInCompanyLanguage(
     companyId: string,
-    lang: AppLang,
+    lang: AiLang,
     text: string,
     context: Record<string, unknown>,
   ): Promise<string> {
     if (!this.llm.isAvailable()) return this.enforceLanguageSync(lang, text);
 
-    const langName = lang === 'ru' ? 'русском' : lang === 'en' ? 'English' : 'тоҷикӣ';
+    const langName = lang === 'ru' ? 'русском' : 'English';
     const res = await this.llm.chat(
       {
         messages: [

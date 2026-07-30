@@ -7,6 +7,9 @@ import { TranslationService } from '../../core/i18n/translation.service';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 import { LanguageSwitcherComponent } from '../../shared/components/language-switcher/language-switcher.component';
 
+const TOTAL_STEPS = 6;
+const MIN_TEXT = 3;
+
 @Component({
   selector: 'app-onboarding',
   standalone: true,
@@ -26,7 +29,7 @@ import { LanguageSwitcherComponent } from '../../shared/components/language-swit
         </div>
 
         <div class="mb-4 flex gap-2">
-          @for (n of [1,2,3,4]; track n) {
+          @for (n of stepNumbers; track n) {
             <div class="h-1.5 flex-1 rounded-full transition-colors"
               [class]="step() >= n ? 'bg-primary-500' : 'bg-white/10'"></div>
           }
@@ -39,21 +42,37 @@ import { LanguageSwitcherComponent } from '../../shared/components/language-swit
               <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.companyName' | t }}</label>
               <input [(ngModel)]="form.companyName" class="input-field" [placeholder]="'onboarding.companyPlaceholder' | t" />
             </div>
-            <div>
-              <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.industry' | t }}</label>
-              <select [(ngModel)]="form.industry" class="input-field">
-                @for (option of industries(); track option.value) {
-                  <option [value]="option.value">{{ option.label }}</option>
-                }
-              </select>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.industry' | t }}</label>
+                <select [(ngModel)]="form.industry" class="input-field">
+                  @for (option of industries(); track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.teamSize' | t }}</label>
+                <select [(ngModel)]="form.teamSize" class="input-field">
+                  @for (option of teamSizes(); track option.value) {
+                    <option [ngValue]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
             </div>
-            <div>
-              <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.teamSize' | t }}</label>
-              <select [(ngModel)]="form.teamSize" class="input-field">
-                @for (option of teamSizes(); track option.value) {
-                  <option [ngValue]="option.value">{{ option.label }}</option>
-                }
-              </select>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.location' | t }}</label>
+                <input [(ngModel)]="form.location" class="input-field" [placeholder]="'onboarding.locationPlaceholder' | t" />
+              </div>
+              <div>
+                <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.businessModel' | t }}</label>
+                <select [(ngModel)]="form.businessModel" class="input-field">
+                  @for (option of businessModels(); track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
             </div>
             <div>
               <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.description' | t }}</label>
@@ -73,6 +92,16 @@ import { LanguageSwitcherComponent } from '../../shared/components/language-swit
               <textarea [(ngModel)]="form.customers" rows="3" class="input-field"
                 [placeholder]="'onboarding.customersPlaceholder' | t"></textarea>
             </div>
+            <div>
+              <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.salesChannels' | t }}</label>
+              <textarea [(ngModel)]="form.salesChannels" rows="2" class="input-field"
+                [placeholder]="'onboarding.salesChannelsPlaceholder' | t"></textarea>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.competitors' | t }}</label>
+              <textarea [(ngModel)]="form.competitors" rows="2" class="input-field"
+                [placeholder]="'onboarding.competitorsPlaceholder' | t"></textarea>
+            </div>
           }
 
           @if (step() === 3) {
@@ -81,6 +110,24 @@ import { LanguageSwitcherComponent } from '../../shared/components/language-swit
               <textarea [(ngModel)]="form.currentState" rows="3" class="input-field"
                 [placeholder]="'onboarding.currentStatePlaceholder' | t"></textarea>
             </div>
+            <div>
+              <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.teamStructure' | t }}</label>
+              <textarea [(ngModel)]="form.teamStructure" rows="2" class="input-field"
+                [placeholder]="'onboarding.teamStructurePlaceholder' | t"></textarea>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.workProcesses' | t }}</label>
+              <textarea [(ngModel)]="form.workProcesses" rows="3" class="input-field"
+                [placeholder]="'onboarding.workProcessesPlaceholder' | t"></textarea>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.toolsAndSystems' | t }}</label>
+              <textarea [(ngModel)]="form.toolsAndSystems" rows="2" class="input-field"
+                [placeholder]="'onboarding.toolsAndSystemsPlaceholder' | t"></textarea>
+            </div>
+          }
+
+          @if (step() === 4) {
             <div>
               <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.goals' | t }}</label>
               <textarea [(ngModel)]="form.goals" rows="3" class="input-field"
@@ -92,16 +139,39 @@ import { LanguageSwitcherComponent } from '../../shared/components/language-swit
                 [placeholder]="'onboarding.challengesPlaceholder' | t"></textarea>
             </div>
             <div>
+              <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.kpis' | t }}</label>
+              <textarea [(ngModel)]="form.kpis" rows="2" class="input-field"
+                [placeholder]="'onboarding.kpisPlaceholder' | t"></textarea>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.seasonality' | t }}</label>
+              <textarea [(ngModel)]="form.seasonality" rows="2" class="input-field"
+                [placeholder]="'onboarding.seasonalityPlaceholder' | t"></textarea>
+            </div>
+          }
+
+          @if (step() === 5) {
+            <div>
+              <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.customerCommunication' | t }}</label>
+              <textarea [(ngModel)]="form.customerCommunication" rows="2" class="input-field"
+                [placeholder]="'onboarding.customerCommunicationPlaceholder' | t"></textarea>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.employeeExpectations' | t }}</label>
+              <textarea [(ngModel)]="form.employeeExpectations" rows="2" class="input-field"
+                [placeholder]="'onboarding.employeeExpectationsPlaceholder' | t"></textarea>
+            </div>
+            <div>
               <label class="mb-1 block text-xs text-slate-300">{{ 'onboarding.extraNotes' | t }}</label>
               <textarea [(ngModel)]="form.businessContext" rows="2" class="input-field"
                 [placeholder]="'onboarding.extraNotesPlaceholder' | t"></textarea>
             </div>
           }
 
-          @if (step() === 4) {
+          @if (step() === 6) {
             <div class="rounded-xl bg-white/5 p-4 text-sm text-slate-300">
               <p class="font-semibold text-white">{{ 'onboarding.reviewTitle' | t }}</p>
-              <p class="mt-2">{{ form.companyName }} · {{ form.industry }}</p>
+              <p class="mt-2">{{ form.companyName }} · {{ form.industry }} · {{ form.location }}</p>
               <p class="mt-1 text-xs text-slate-400">{{ 'onboarding.reviewHint' | t }}</p>
             </div>
             <div>
@@ -113,6 +183,17 @@ import { LanguageSwitcherComponent } from '../../shared/components/language-swit
             </div>
           }
 
+          @if (validationErrors().length) {
+            <div class="rounded-lg border border-red-500/40 bg-red-500/10 p-3">
+              <p class="text-sm font-medium text-red-300">{{ 'onboarding.validation.title' | t }}</p>
+              <ul class="mt-2 list-inside list-disc space-y-1 text-sm text-red-400">
+                @for (err of validationErrors(); track err) {
+                  <li>{{ err }}</li>
+                }
+              </ul>
+            </div>
+          }
+
           @if (error()) {
             <p class="text-sm text-red-400">{{ error() }}</p>
           }
@@ -121,12 +202,12 @@ import { LanguageSwitcherComponent } from '../../shared/components/language-swit
             @if (step() > 1) {
               <button type="button" class="btn-secondary flex-1" (click)="prevStep()">{{ 'onboarding.back' | t }}</button>
             }
-            @if (step() < 4) {
-              <button type="button" class="btn-primary flex-1" (click)="nextStep()" [disabled]="!isStepValid()">
+            @if (step() < TOTAL_STEPS) {
+              <button type="button" class="btn-primary flex-1" (click)="nextStep()">
                 {{ 'onboarding.next' | t }}
               </button>
             } @else {
-              <button type="button" class="btn-primary flex-1" (click)="submit()" [disabled]="loading() || !isValid()">
+              <button type="button" class="btn-primary flex-1" (click)="submit()" [disabled]="loading()">
                 {{ loading() ? ('onboarding.preparing' | t) : ('onboarding.start' | t) }}
               </button>
             }
@@ -137,6 +218,9 @@ import { LanguageSwitcherComponent } from '../../shared/components/language-swit
   `,
 })
 export class OnboardingComponent {
+  readonly TOTAL_STEPS = TOTAL_STEPS;
+  readonly stepNumbers = [1, 2, 3, 4, 5, 6];
+
   private api = inject(ApiService);
   private companyContext = inject(CompanyContextService);
   private router = inject(Router);
@@ -144,19 +228,30 @@ export class OnboardingComponent {
 
   loading = signal(false);
   error = signal('');
+  validationErrors = signal<string[]>([]);
   step = signal(1);
 
   form = {
     companyName: '',
     industry: '',
-    businessType: 'general',
+    businessModel: '',
     teamSize: 0 as number,
+    location: '',
     description: '',
     products: '',
     customers: '',
+    salesChannels: '',
+    competitors: '',
     currentState: '',
+    teamStructure: '',
+    workProcesses: '',
+    toolsAndSystems: '',
     goals: '',
     challenges: '',
+    kpis: '',
+    seasonality: '',
+    customerCommunication: '',
+    employeeExpectations: '',
     businessContext: '',
     autonomyLevel: 'FULL_AUTONOMY',
   };
@@ -168,6 +263,8 @@ export class OnboardingComponent {
       this.i18n.t('onboarding.step2Title'),
       this.i18n.t('onboarding.step3Title'),
       this.i18n.t('onboarding.step4Title'),
+      this.i18n.t('onboarding.step5Title'),
+      this.i18n.t('onboarding.step6Title'),
     ];
     return titles[this.step() - 1] ?? '';
   });
@@ -195,6 +292,17 @@ export class OnboardingComponent {
     ];
   });
 
+  businessModels = computed(() => {
+    this.i18n.lang();
+    return [
+      { value: '', label: this.i18n.t('onboarding.businessModel.select') },
+      { value: 'B2C offline', label: this.i18n.t('onboarding.businessModel.b2cOffline') },
+      { value: 'B2C online', label: this.i18n.t('onboarding.businessModel.b2cOnline') },
+      { value: 'B2B', label: this.i18n.t('onboarding.businessModel.b2b') },
+      { value: 'Mixed', label: this.i18n.t('onboarding.businessModel.mixed') },
+    ];
+  });
+
   constructor() {
     this.companyContext.ensureCompany().subscribe({
       next: (id) => {
@@ -209,67 +317,130 @@ export class OnboardingComponent {
             }
             if (c.description) this.form.description = c.description;
             if (c.teamSize) this.form.teamSize = c.teamSize;
+            if (c.businessType) this.form.businessModel = c.businessType;
           },
         });
       },
     });
   }
 
-  isStepValid(): boolean {
-    const min = 10;
-    switch (this.step()) {
-      case 1:
-        return (
-          this.form.companyName.trim().length >= 2 &&
-          !!this.form.industry &&
-          this.form.teamSize > 0 &&
-          this.form.description.trim().length >= min
-        );
-      case 2:
-        return this.form.products.trim().length >= min && this.form.customers.trim().length >= min;
-      case 3:
-        return (
-          this.form.currentState.trim().length >= min &&
-          this.form.goals.trim().length >= min &&
-          this.form.challenges.trim().length >= min
-        );
-      case 4:
-        return this.isValid();
-      default:
-        return false;
-    }
+  private fieldLabel(key: string): string {
+    return this.i18n.t(key);
   }
 
-  isValid() {
-    const min = 10;
-    return (
-      this.form.companyName.trim().length >= 2 &&
-      !!this.form.industry &&
-      this.form.teamSize > 0 &&
-      this.form.description.trim().length >= min &&
-      this.form.products.trim().length >= min &&
-      this.form.customers.trim().length >= min &&
-      this.form.currentState.trim().length >= min &&
-      this.form.goals.trim().length >= min &&
-      this.form.challenges.trim().length >= min
-    );
+  private textFieldError(labelKey: string, value: string, min = MIN_TEXT): string | null {
+    const field = this.fieldLabel(labelKey);
+    const trimmed = value.trim();
+    if (!trimmed) return this.i18n.t('onboarding.validation.fieldRequired', { field });
+    if (trimmed.length < min) return this.i18n.t('onboarding.validation.fieldTooShort', { field, min });
+    return null;
+  }
+
+  private collectStepErrors(s: number): string[] {
+    const errors: string[] = [];
+
+    switch (s) {
+      case 1: {
+        const name = this.form.companyName.trim();
+        if (!name) errors.push(this.i18n.t('onboarding.validation.companyNameRequired'));
+        else if (name.length < 2) errors.push(this.i18n.t('onboarding.validation.companyNameTooShort', { min: 2 }));
+        if (!this.form.industry) errors.push(this.i18n.t('onboarding.validation.industryRequired'));
+        if (this.form.teamSize <= 0) errors.push(this.i18n.t('onboarding.validation.teamSizeRequired'));
+        const loc = this.form.location.trim();
+        if (!loc) errors.push(this.i18n.t('onboarding.validation.locationRequired'));
+        else if (loc.length < 3) errors.push(this.i18n.t('onboarding.validation.locationTooShort', { min: 3 }));
+        if (!this.form.businessModel) errors.push(this.i18n.t('onboarding.validation.businessModelRequired'));
+        const descErr = this.textFieldError('onboarding.description', this.form.description);
+        if (descErr) errors.push(descErr);
+        break;
+      }
+      case 2: {
+        for (const [key, field] of [
+          ['onboarding.products', 'products'],
+          ['onboarding.customers', 'customers'],
+          ['onboarding.salesChannels', 'salesChannels'],
+          ['onboarding.competitors', 'competitors'],
+        ] as const) {
+          const err = this.textFieldError(key, this.form[field]);
+          if (err) errors.push(err);
+        }
+        break;
+      }
+      case 3: {
+        for (const [key, field] of [
+          ['onboarding.currentState', 'currentState'],
+          ['onboarding.teamStructure', 'teamStructure'],
+          ['onboarding.workProcesses', 'workProcesses'],
+        ] as const) {
+          const err = this.textFieldError(key, this.form[field]);
+          if (err) errors.push(err);
+        }
+        break;
+      }
+      case 4: {
+        for (const [key, field] of [
+          ['onboarding.goals', 'goals'],
+          ['onboarding.challenges', 'challenges'],
+          ['onboarding.kpis', 'kpis'],
+        ] as const) {
+          const err = this.textFieldError(key, this.form[field]);
+          if (err) errors.push(err);
+        }
+        break;
+      }
+      case 5: {
+        for (const [key, field] of [
+          ['onboarding.customerCommunication', 'customerCommunication'],
+          ['onboarding.employeeExpectations', 'employeeExpectations'],
+        ] as const) {
+          const err = this.textFieldError(key, this.form[field]);
+          if (err) errors.push(err);
+        }
+        break;
+      }
+    }
+
+    return errors;
   }
 
   nextStep() {
-    if (!this.isStepValid()) return;
-    this.step.update((s) => Math.min(4, s + 1));
+    const errors = this.collectStepErrors(this.step());
+    if (errors.length) {
+      this.validationErrors.set(errors);
+      return;
+    }
+    this.validationErrors.set([]);
+    this.step.update((s) => Math.min(TOTAL_STEPS, s + 1));
   }
 
   prevStep() {
+    this.validationErrors.set([]);
     this.step.update((s) => Math.max(1, s - 1));
   }
 
   submit() {
     const id = this.companyContext.companyId();
-    if (!id || !this.isStepValid()) return;
+    if (!id) return;
 
-    this.loading.set(true);
+    const allErrors: string[] = [];
+    for (let s = 1; s <= 5; s++) {
+      const stepErrors = this.collectStepErrors(s);
+      if (stepErrors.length) {
+        allErrors.push(this.i18n.t('onboarding.validation.stepIncomplete', { step: s }));
+        allErrors.push(...stepErrors);
+      }
+    }
+
+    if (allErrors.length) {
+      this.validationErrors.set(allErrors);
+      const firstBad = [1, 2, 3, 4, 5].find((s) => this.collectStepErrors(s).length > 0);
+      if (firstBad) this.step.set(firstBad);
+      return;
+    }
+
+    this.validationErrors.set([]);
     this.error.set('');
+    this.loading.set(true);
 
     this.api.completeOnboarding(id, { ...this.form, language: this.i18n.lang() }).subscribe({
       next: (company) => {

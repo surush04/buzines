@@ -202,7 +202,7 @@ export class CompanyService {
       data: {
         name: dto.companyName,
         industry: dto.industry,
-        businessType: dto.businessType,
+        businessType: dto.businessModel ?? dto.businessType,
         description: dto.description,
         teamSize: dto.teamSize ?? undefined,
         onboardingDone: true,
@@ -225,24 +225,102 @@ export class CompanyService {
     return this.getCompany(companyId, userId);
   }
 
+  private onboardingSection(
+    lang: string | undefined,
+    ru: string,
+    tg: string,
+    en: string,
+  ): string {
+    if (lang === 'en') return en;
+    if (lang === 'tg') return tg;
+    return ru;
+  }
+
   private buildBusinessContext(dto: OnboardingDto): string {
-    const ru = dto.language === 'ru';
+    const lang = dto.language ?? 'ru';
+    const section = (title: string, value?: string) => {
+      const text = value?.trim();
+      if (!text) return null;
+      return `=== ${title} ===\n${text}`;
+    };
+
     const sections = [
-      dto.businessContext?.trim(),
-      ru
-        ? `=== ПРОДУКТЫ И УСЛУГИ ===\n${dto.products.trim()}`
-        : `=== МАҲСУЛОТ ВА ХИЗМАТРАСОНИҲО ===\n${dto.products.trim()}`,
-      ru
-        ? `=== КЛИЕНТЫ ===\n${dto.customers.trim()}`
-        : `=== МУШТАРИЁН ===\n${dto.customers.trim()}`,
-      ru
-        ? `=== ТЕКУЩЕЕ СОСТОЯНИЕ БИЗНЕСА ===\n${dto.currentState.trim()}`
-        : `=== ҲОЛАТИ ҲОЗИРАИ БИЗНЕС ===\n${dto.currentState.trim()}`,
-      ru ? `=== ЦЕЛИ ===\n${dto.goals.trim()}` : `=== МАҚСАДҲО ===\n${dto.goals.trim()}`,
-      ru
-        ? `=== ПРОБЛЕМЫ И ПРЕПЯТСТВИЯ ===\n${dto.challenges.trim()}`
-        : `=== МУШКИЛИҲО ВА МОНЕАҲО ===\n${dto.challenges.trim()}`,
+      section(
+        this.onboardingSection(lang, 'ОПИСАНИЕ БИЗНЕСА', 'ТАВСИФИ БИЗНЕС', 'BUSINESS DESCRIPTION'),
+        dto.description,
+      ),
+      section(
+        this.onboardingSection(lang, 'ЛОКАЦИЯ И РЫНОК', 'ҶОЙГАҲ ВА БОЗОР', 'LOCATION & MARKET'),
+        `${dto.location.trim()}\n${this.onboardingSection(lang, 'Модель', 'Модел', 'Model')}: ${dto.businessModel}`,
+      ),
+      section(
+        this.onboardingSection(lang, 'ПРОДУКТЫ И УСЛУГИ', 'МАҲСУЛОТ ВА ХИЗМАТРАСОНИҲО', 'PRODUCTS & SERVICES'),
+        dto.products,
+      ),
+      section(
+        this.onboardingSection(lang, 'КЛИЕНТЫ И АУДИТОРИЯ', 'МУШТАРИЁН', 'CUSTOMERS'),
+        dto.customers,
+      ),
+      section(
+        this.onboardingSection(lang, 'КАНАЛЫ ПРОДАЖ', 'КАНАЛҲОИ ФУРӮӢШ', 'SALES CHANNELS'),
+        dto.salesChannels,
+      ),
+      section(
+        this.onboardingSection(lang, 'КОНКУРЕНТЫ', 'РАҚИБОН', 'COMPETITORS'),
+        dto.competitors,
+      ),
+      section(
+        this.onboardingSection(lang, 'ТЕКУЩЕЕ СОСТОЯНИЕ', 'ҲОЛАТИ ҲОЗИРА', 'CURRENT STATE'),
+        dto.currentState,
+      ),
+      section(
+        this.onboardingSection(lang, 'СТРУКТУРА КОМАНДЫ И РОЛИ', 'САХТАМОНИ ДАСТА', 'TEAM STRUCTURE'),
+        dto.teamStructure,
+      ),
+      section(
+        this.onboardingSection(lang, 'ПРОЦЕССЫ И РАБОЧИЙ ДЕНЬ', 'РАВАНДИ КОР', 'WORK PROCESSES'),
+        dto.workProcesses,
+      ),
+      dto.toolsAndSystems?.trim()
+        ? section(
+            this.onboardingSection(lang, 'ИНСТРУМЕНТЫ И СИСТЕМЫ', 'АБЗОРҲО ВА СИСТЕМАҲО', 'TOOLS & SYSTEMS'),
+            dto.toolsAndSystems,
+          )
+        : null,
+      section(
+        this.onboardingSection(lang, 'ЦЕЛИ', 'МАҚСАДҲО', 'GOALS'),
+        dto.goals,
+      ),
+      section(
+        this.onboardingSection(lang, 'ПРОБЛЕМЫ И ПРЕПЯТСТВИЯ', 'МУШКИЛИҲО', 'CHALLENGES'),
+        dto.challenges,
+      ),
+      section(
+        this.onboardingSection(lang, 'KPI И МЕТРИКИ', 'KPI ВА МЕТРИКАҲО', 'KPI & METRICS'),
+        dto.kpis,
+      ),
+      dto.seasonality?.trim()
+        ? section(
+            this.onboardingSection(lang, 'СЕЗОННОСТЬ', 'МУВОФИҚИЯТ', 'SEASONALITY'),
+            dto.seasonality,
+          )
+        : null,
+      section(
+        this.onboardingSection(lang, 'ОБЩЕНИЕ С КЛИЕНТАМИ', 'АЛОҚА БО МУШТАРИЁН', 'CUSTOMER COMMUNICATION'),
+        dto.customerCommunication,
+      ),
+      section(
+        this.onboardingSection(lang, 'ОЖИДАНИЯ ОТ СОТРУДНИКОВ', 'ИНТИЗОРИЯТ АЗ КОРМАНДО', 'EMPLOYEE EXPECTATIONS'),
+        dto.employeeExpectations,
+      ),
+      dto.businessContext?.trim()
+        ? section(
+            this.onboardingSection(lang, 'ДОПОЛНИТЕЛЬНО', 'ИЛОВАГӢ', 'ADDITIONAL NOTES'),
+            dto.businessContext,
+          )
+        : null,
     ];
+
     return sections.filter(Boolean).join('\n\n');
   }
 

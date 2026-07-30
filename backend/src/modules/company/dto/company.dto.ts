@@ -187,9 +187,55 @@ export class OnboardingDto {
   @IsString()
   goals: string;
 
-  @ApiProperty({ example: 'Камии муштариён, реклама нест...' })
+  @ApiProperty({ example: 'Мушкилот...' })
   @IsString()
   challenges: string;
+
+  @ApiProperty({ example: 'Душанbe, Тоҷикистон' })
+  @IsString()
+  location: string;
+
+  @ApiProperty({ example: 'B2C offline' })
+  @IsString()
+  businessModel: string;
+
+  @ApiProperty({ example: 'Instagram, мағоза, телефон' })
+  @IsString()
+  salesChannels: string;
+
+  @ApiProperty({ example: 'Рақибони асосӣ дар минтақа' })
+  @IsString()
+  competitors: string;
+
+  @ApiProperty({ example: 'Менеджер, фурӯшанда, бухгалтер' })
+  @IsString()
+  teamStructure: string;
+
+  @ApiProperty({ example: 'Субҳ нақша, рӯз фуруш, шом гузориш' })
+  @IsString()
+  workProcesses: string;
+
+  @ApiProperty({ example: 'Фуруши моҳона, муштариёни нав, маржа' })
+  @IsString()
+  kpis: string;
+
+  @ApiProperty({ example: 'Дӯстона, зуд, бо эмодзи' })
+  @IsString()
+  customerCommunication: string;
+
+  @ApiProperty({ example: 'Сари вақт, гузориши натиҷа, савол пурсида' })
+  @IsString()
+  employeeExpectations: string;
+
+  @ApiPropertyOptional({ example: 'Excel, 1C, Telegram' })
+  @IsOptional()
+  @IsString()
+  toolsAndSystems?: string;
+
+  @ApiPropertyOptional({ example: 'Тирамоҳ фурӯши зиёд' })
+  @IsOptional()
+  @IsString()
+  seasonality?: string;
 
   @ApiPropertyOptional({ example: 'Иттилооти иловагӣ барои AI...' })
   @IsOptional()

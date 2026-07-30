@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TaskStatus, DirectiveStatus } from '@prisma/client';
 
+/** UI language (frontend) */
 export type AppLang = 'tg' | 'ru' | 'en';
+/** AI output language — Tajik is never used */
+export type AiLang = 'ru' | 'en';
 
 @Injectable()
 export class BusinessContextService {
@@ -18,32 +21,38 @@ export class BusinessContextService {
     return 'ru';
   }
 
-  getLanguageDirective(lang: AppLang): string {
-    const directives: Record<AppLang, string> = {
+  /** Maps UI language to AI language. Tajik UI → Russian AI. */
+  resolveAiLang(lang: AppLang): AiLang {
+    return lang === 'en' ? 'en' : 'ru';
+  }
+
+  async getAiLanguage(companyId: string): Promise<AiLang> {
+    return this.resolveAiLang(await this.getCompanyLanguage(companyId));
+  }
+
+  getLanguageDirective(lang: AiLang): string {
+    const directives: Record<AiLang, string> = {
       ru:
         'ЯЗЫК (КРИТИЧНО): Отвечайте СТРОГО ТОЛЬКО на русском языке.\n' +
-        'Запрещено: таджикский, английский, латиница, смешанный текст.\n' +
+        'КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО: таджикский язык, таджикские слова (вазифа, лутфан, фаҳмидам, салом, коргар и т.д.), английский, латиница, смешанный текст.\n' +
         'Поля reply и aiAnalysis — только кириллица, только русский.',
       en:
-        'LANGUAGE: Respond STRICTLY ONLY in English. ' +
-        'Do not use Tajik, Russian, or mixed languages.',
-      tg:
-        'ЗАБОН: Танҳо ба забони тоҷикӣ ҷavob диҳед. Русӣ ё англисиро истифода накунед.',
+        'LANGUAGE (CRITICAL): Respond STRICTLY ONLY in English.\n' +
+        'FORBIDDEN: Tajik language, Russian, Cyrillic, or mixed languages.',
     };
     return directives[lang];
   }
 
-  getLanguageReminder(lang: AppLang): string {
-    const reminders: Record<AppLang, string> = {
+  getLanguageReminder(lang: AiLang): string {
+    const reminders: Record<AiLang, string> = {
       ru: '\n\nНАПОМИНАНИЕ: reply и aiAnalysis — ТОЛЬКО на русском языке. Никакого таджикского.',
-      en: '\n\nREMINDER: reply and aiAnalysis — English ONLY.',
-      tg: '\n\nЁДРАС: reply танҳо ба тоҷикӣ.',
+      en: '\n\nREMINDER: reply and aiAnalysis — English ONLY. No Tajik or Russian.',
     };
     return reminders[lang];
   }
 
-  getTaskManagementRules(lang: AppLang): string {
-    const rules: Record<AppLang, string> = {
+  getTaskManagementRules(lang: AiLang): string {
+    const rules: Record<AiLang, string> = {
       ru:
         'ПРАВИЛА ЗАДАЧ (ОБЯЗАТЕЛЬНО):\n' +
         '- НЕ создавайте новые задачи, пока текущие не выполнены на 100%.\n' +
@@ -57,42 +66,34 @@ export class BusinessContextService {
         '- No response → follow-up on the SAME task only.\n' +
         '- Reply ONLY about the current task.\n' +
         '- isComplete=true only at progressPct=100 with clear evidence.',
-      tg:
-        'ҚОИДАҲОИ ВАЗИФА:\n' +
-        '- То 100% тамом нашавад, вазифаи нав надиҳед.\n' +
-        '- Follow-up танҳо барои ҳамон вазифа.\n' +
-        '- Танҳо дар бораи вазифаи ҷорӣ ҷavob диҳед.',
     };
     return rules[lang];
   }
 
-  localeForLang(lang: AppLang): string {
-    return lang === 'ru' ? 'ru-RU' : lang === 'en' ? 'en-US' : 'tg-TJ';
+  localeForLang(lang: AiLang): string {
+    return lang === 'ru' ? 'ru-RU' : 'en-US';
   }
 
-  shortReply(lang: AppLang, key: 'ack' | 'noTask' | 'followUpFallback'): string {
-    const map: Record<string, Record<AppLang, string>> = {
+  shortReply(lang: AiLang, key: 'ack' | 'noTask' | 'followUpFallback'): string {
+    const map: Record<string, Record<AiLang, string>> = {
       ack: {
         ru: 'Понял. Отвечу по текущей задаче.',
         en: 'Understood. I will reply about the current task.',
-        tg: 'Фаҳмидам. Ба зудӣ ҷavob медиҳам.',
       },
       noTask: {
         ru: 'Активной задачи нет. Дождитесь назначения от администратора.',
         en: 'No active task. Wait for admin assignment.',
-        tg: 'Вazifai faъol нест.',
       },
       followUpFallback: {
         ru: 'Напоминаю о текущей задаче. Сообщите статус выполнения.',
         en: 'Reminder: please share progress on your current task.',
-        tg: 'Ёдрас: лутфан статус нависед.',
       },
     };
     return map[key][lang];
   }
 
-  getEvaluateMessageRules(lang: AppLang): string {
-    const rules: Record<AppLang, string> = {
+  getEvaluateMessageRules(lang: AiLang): string {
+    const rules: Record<AiLang, string> = {
       ru:
         'Вы — операционный менеджер (не бот).\n' +
         'ПОРЯДОК:\n' +
@@ -104,62 +105,89 @@ export class BusinessContextService {
         'isComplete=true ТОЛЬКО при progressPct=100 и конкретном результате в сообщении.',
       en:
         'You are an operations manager (not a bot). Analyze employee message in business + task context.\n' +
-        'aiAnalysis — for admin. reply — natural 1-3 sentences for employee.\n' +
+        'aiAnalysis — for admin. reply — natural 1-3 sentences for employee in English.\n' +
+        'FORBIDDEN: Tajik language.\n' +
         'isComplete=true ONLY when progressPct=100 AND clear evidence.',
-      tg:
-        'Шумо мудири бизнес — на бот. Пaёмро дар бораи вazifa ва бизнес таҳлил кунед.\n' +
-        'isComplete=true танҳо агар progressPct=100 ва натиҷаи конкретӣ бошад.',
     };
     return rules[lang];
   }
 
-  getJsonEvaluateSchema(lang: AppLang): string {
+  getJsonEvaluateSchema(lang: AiLang): string {
     const note =
       lang === 'ru'
-        ? 'reply и aiAnalysis — ТОЛЬКО на русском'
-        : lang === 'en'
-          ? 'reply and aiAnalysis — English ONLY'
-          : 'reply — танҳо тоҷикӣ';
+        ? 'reply и aiAnalysis — ТОЛЬКО на русском, без таджикского'
+        : 'reply and aiAnalysis — English ONLY';
     return `\nJSON: { "responseType": "STARTED|COMPLETED|BLOCKED|NEED_HELP|RUNNING_LATE|CUSTOM", "isComplete": bool, "progressPct": 0-100, "aiAnalysis": "анализ для админа (${note})", "reply": "ответ сотруднику (${note})" }`;
   }
 
-  getChatReplyRules(lang: AppLang): string {
-    const rules: Record<AppLang, string> = {
+  getChatReplyRules(lang: AiLang): string {
+    const rules: Record<AiLang, string> = {
       ru:
         'Ответьте как живой менеджер на русском языке.\n' +
         'Сначала проанализируйте сообщение сотрудника в контексте бизнеса и активной задачи.\n' +
-        'Ответ — короткий, по делу, с учётом целей компании. Только русский язык.\n' +
+        'Ответ — короткий, по делу, с учётом целей компании. Только русский язык. Без таджикского.\n' +
         'Обсуждайте ТОЛЬКО текущую задачу. Без шаблонов и посторонних тем.',
       en:
-        'Reply like a real manager — short, on-topic, in English.\n' +
-        'Analyze the message in business + task context first.',
-      tg:
-        'Мисли мудир ҷavob диҳед — кӯтоҳ, дар бораи вazifai faъol.',
+        'Reply like a real manager — short, on-topic, in English only.\n' +
+        'Analyze the message in business + task context first. No Tajik.',
     };
     return rules[lang];
   }
 
-  getFollowUpRules(lang: AppLang): string {
-    const rules: Record<AppLang, string> = {
+  getFollowUpRules(lang: AiLang): string {
+    const rules: Record<AiLang, string> = {
       ru:
         'Напишите follow-up по ТЕКУЩЕЙ задаче — естественно, коротко, без эмодзи и HTML.\n' +
-        'Напомните о задаче и попросите статус или результат. Не создавайте новую задачу.',
+        'Напомните о задаче и попросите статус или результат. Не создавайте новую задачу.\n' +
+        'Только русский язык. Таджикский запрещён.',
       en:
-        'Write a follow-up about the SAME task — natural, short, no HTML. Ask for status or result.',
-      tg:
-        'Follow-up барои ҳамон вazifa — табиӣ, кӯтоҳ.',
+        'Write a follow-up about the SAME task — natural, short, no HTML. Ask for status or result. English only.',
     };
     return rules[lang];
   }
 
-  getNaturalReplyFallback(lang: AppLang, name: string, msg: string): string {
+  getNaturalReplyFallback(lang: AiLang, name: string, msg: string): string {
     const snippet = msg.slice(0, 80);
-    const map: Record<AppLang, string> = {
+    const map: Record<AiLang, string> = {
       ru: `${name}, понял: «${snippet}». Отвечу по текущей задаче.`,
       en: `${name}, got it: «${snippet}». I'll reply about the current task.`,
-      tg: `${name}, гуфтед: «${snippet}». Ба зудӣ ҷavob медиҳам.`,
     };
     return map[lang];
+  }
+
+  buildTaskAssignmentMessage(
+    lang: AiLang,
+    params: {
+      name: string;
+      instruction: string;
+      title: string;
+      description?: string | null;
+      deadlineStr: string;
+    },
+  ): string {
+    const { name, instruction, title, description, deadlineStr } = params;
+    if (lang === 'en') {
+      return (
+        `${name}, hello!\n\n` +
+        `Admin order: ${instruction}\n\n` +
+        `Your task: ${title}\n` +
+        (description ? `Description: ${description}\n` : '') +
+        `Deadline: ${deadlineStr}\n\n` +
+        `Please reply with what you did and the result.`
+      );
+    }
+    return (
+      `${name}, здравствуйте!\n\n` +
+      `Приказ администратора: ${instruction}\n\n` +
+      `Ваша задача: ${title}\n` +
+      (description ? `Описание: ${description}\n` : '') +
+      `Срок выполнения: ${deadlineStr}\n\n` +
+      `Пожалуйста, ответьте — что сделано и какой результат.`
+    );
+  }
+
+  deadlineNotSetLabel(lang: AiLang): string {
+    return lang === 'en' ? 'not set' : 'не указан';
   }
 
   async countIncompleteTasks(companyId: string): Promise<number> {
@@ -203,6 +231,7 @@ export class BusinessContextService {
         ? `Контекст:\n${company.aiSettings.businessContext}`
         : null,
       company.settings?.language ? `Язык UI: ${company.settings.language}` : null,
+      'Язык ответов AI: русский (таджикский запрещён)',
       team ? `Сотрудники:\n${team}` : 'Сотрудники: не добавлены',
     ];
 
@@ -210,7 +239,7 @@ export class BusinessContextService {
   }
 
   async getOperationalSnapshot(companyId: string): Promise<string> {
-    const lang = await this.getCompanyLanguage(companyId);
+    const lang = await this.getAiLanguage(companyId);
     const locale = this.localeForLang(lang);
 
     const [taskCounts, activeTasks, directives, employeeLoads] = await Promise.all([
@@ -303,11 +332,12 @@ export class BusinessContextService {
     const [ctx, ops, lang] = await Promise.all([
       this.getContext(companyId),
       this.getOperationalSnapshot(companyId),
-      this.getCompanyLanguage(companyId),
+      this.getAiLanguage(companyId),
     ]);
     return (
       `${this.getLanguageDirective(lang)}\n\n${this.getTaskManagementRules(lang)}\n\n` +
       `You are AI Business Manager.\n` +
+      `NEVER use Tajik language in any response.\n` +
       `Follow up on the SAME task until 100% complete. Do NOT create new tasks while incomplete tasks exist.\n` +
       `Speak naturally — not like a bot.\n\n` +
       `=== BUSINESS ===\n${ctx}\n\n${ops}\n` +

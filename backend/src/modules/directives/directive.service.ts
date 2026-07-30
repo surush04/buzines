@@ -415,13 +415,11 @@ export class DirectiveService {
     const incompleteTasks = await this.businessContext.countIncompleteTasks(companyId);
     if (incompleteTasks > 0) {
       const followUp = await this.followUpIncompleteTasks(companyId);
-      const lang = await this.businessContext.getCompanyLanguage(companyId);
+      const lang = await this.businessContext.getAiLanguage(companyId);
       const summary =
-        lang === 'ru'
-          ? `Незавершённых задач: ${incompleteTasks}. Отправлен follow-up по текущим задачам (новые задачи не создаются).`
-          : lang === 'en'
-            ? `${incompleteTasks} incomplete tasks. Follow-up sent (no new tasks created).`
-            : `${incompleteTasks} вazifai нотамом. Follow-up фиристода шуд.`;
+        lang === 'en'
+          ? `${incompleteTasks} incomplete tasks. Follow-up sent (no new tasks created).`
+          : `Незавершённых задач: ${incompleteTasks}. Отправлен follow-up по текущим задачам (новые задачи не создаются).`;
       return { analyzed: true, summary, followUp, followUpOnly: true };
     }
 
@@ -475,11 +473,10 @@ JSON: { "needsNewTasks": bool, "instruction": string|null, "summary": string, "f
   }
 
   private async analysisUserPrompt(companyId: string): Promise<string> {
-    const lang = await this.businessContext.getCompanyLanguage(companyId);
-    const prompts: Record<'tg' | 'ru' | 'en', string> = {
+    const lang = await this.businessContext.getAiLanguage(companyId);
+    const prompts: Record<'ru' | 'en', string> = {
       ru: 'Проанализируйте текущее состояние бизнеса и решите, нужны ли новые задачи или follow-up.',
       en: 'Analyze the current business state and decide if new tasks or follow-up are needed.',
-      tg: 'Ҳолати ҷoriroи бизнесро таҳлил кунед ва qaror гиред.',
     };
     return prompts[lang];
   }
@@ -488,29 +485,23 @@ JSON: { "needsNewTasks": bool, "instruction": string|null, "summary": string, "f
     companyId: string,
     stats: { overdue: number; blocked: number; activeDirectives: number },
   ): Promise<string | null> {
-    const lang = await this.businessContext.getCompanyLanguage(companyId);
+    const lang = await this.businessContext.getAiLanguage(companyId);
     if (stats.blocked > 0) {
-      return lang === 'ru'
-        ? `Устраните блокировки — ${stats.blocked} задач заблокировано.`
-        : lang === 'en'
-          ? `Resolve blockers — ${stats.blocked} tasks blocked.`
-          : `Монеаҳо ҳал кунед — ${stats.blocked} вазифа блок шудааст.`;
+      return lang === 'en'
+        ? `Resolve blockers — ${stats.blocked} tasks blocked.`
+        : `Устраните блокировки — ${stats.blocked} задач заблокировано.`;
     }
     if (stats.overdue > 0) {
-      return lang === 'ru'
-        ? `Follow-up по ${stats.overdue} просроченным задачам.`
-        : lang === 'en'
-          ? `Follow up on ${stats.overdue} overdue tasks.`
-          : `Follow-up барои ${stats.overdue} вазифаи дершуда.`;
+      return lang === 'en'
+        ? `Follow up on ${stats.overdue} overdue tasks.`
+        : `Follow-up по ${stats.overdue} просроченным задачам.`;
     }
     if (stats.activeDirectives > 0) return null;
 
     if (!this.llm.isAvailable()) {
-      return lang === 'ru'
-        ? 'Составьте недельный план улучшения бизнеса.'
-        : lang === 'en'
-          ? 'Create a weekly plan to improve the business.'
-          : 'Нaqшаи ҳафтаина барои беhtar кардани бизнес созед.';
+      return lang === 'en'
+        ? 'Create a weekly plan to improve the business.'
+        : 'Составьте недельный план улучшения бизнеса.';
     }
 
     try {
@@ -795,6 +786,9 @@ JSON: { "tasks": [{ "title", "description", "category": "FRONTEND|BACKEND|DESIGN
     });
     const employeeMap = new Map(employees.map((e) => [e.id, e]));
 
+    const lang = await this.businessContext.getAiLanguage(companyId);
+    const locale = this.businessContext.localeForLang(lang);
+
     let sent = 0;
     let failed = 0;
     let reason: string | undefined;
@@ -809,18 +803,18 @@ JSON: { "tasks": [{ "title", "description", "category": "FRONTEND|BACKEND|DESIGN
       const info = detailMap.get(t.taskId);
       const deadline = t.deadline ?? info?.deadline;
       const deadlineStr = deadline
-        ? deadline.toLocaleDateString('tg-TJ', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
-        : 'муайян мешавад';
+        ? deadline.toLocaleDateString(locale, { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+        : this.businessContext.deadlineNotSetLabel(lang);
       const employee = employeeMap.get(t.employeeId);
-      const name = employee?.firstName ?? 'Коргар';
+      const name = employee?.firstName ?? (lang === 'en' ? 'Employee' : 'Сотрудник');
 
-      const message =
-        `${name}, салом!\n\n` +
-        `Фармони админ: ${instruction}\n\n` +
-        `Вазифаи шумо: ${t.title}\n` +
-        (info?.description ? `Тавсиф: ${info.description}\n` : '') +
-        `Мӯҳлати иҷро: ${deadlineStr}\n\n` +
-        `Лутфан ҷavоб диҳед — чӣ кардаед, натиҷа чӣ шуд.`;
+      const message = this.businessContext.buildTaskAssignmentMessage(lang, {
+        name,
+        instruction,
+        title: t.title,
+        description: info?.description,
+        deadlineStr,
+      });
 
       await this.notifications.send(
         t.employeeId,
