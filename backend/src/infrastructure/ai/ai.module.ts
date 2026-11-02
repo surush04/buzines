@@ -6,9 +6,10 @@ import { BusinessContextService } from './business-context.service';
 import { LlmService } from './llm.service';
 import { AuthModule } from '../../modules/auth/auth.module';
 import { DirectiveModule } from '../../modules/directives/directive.module';
+import { BosModule } from '../../modules/bos/bos.module';
 
 @Module({
-  imports: [AuthModule, forwardRef(() => DirectiveModule)],
+  imports: [AuthModule, forwardRef(() => DirectiveModule), BosModule],
   controllers: [AiController],
   providers: [AiEngineService, AiSchedulerService, BusinessContextService, LlmService],
   exports: [AiEngineService, BusinessContextService, LlmService],

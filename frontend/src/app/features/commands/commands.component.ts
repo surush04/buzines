@@ -1,7 +1,6 @@
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { CompanyContextService } from '../../core/services/company-context.service';
 import { TranslationService } from '../../core/i18n/translation.service';
@@ -10,7 +9,7 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 @Component({
   selector: 'app-commands',
   standalone: true,
-  imports: [FormsModule, DatePipe, RouterLink, TranslatePipe],
+  imports: [FormsModule, DatePipe, TranslatePipe],
   template: `
     <div class="animate-fade-in mx-auto max-w-4xl space-y-8">
       <div class="glass-card p-8 text-center">
@@ -22,13 +21,6 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
       </div>
 
       <div class="glass-card p-6">
-        @if (telegramWarning()) {
-          <div class="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
-            ⚠️ <strong>{{ 'commands.telegramNotConnected' | t }}</strong> {{ telegramWarning() }}
-            <a routerLink="/settings" class="ml-1 font-semibold underline">{{ 'commands.settingsOtp' | t }}</a>
-          </div>
-        }
-
         <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
           {{ 'commands.label' | t }}
         </label>
@@ -57,9 +49,9 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
         @if (aiWarning()) {
           <p class="mt-3 text-sm text-amber-600">{{ aiWarning() }}</p>
         }
-        @if (telegramResult()) {
-          <p class="mt-3 text-sm" [class]="telegramResult()!.sent > 0 ? 'text-emerald-600' : 'text-amber-600'">
-            {{ telegramResult()!.message }}
+        @if (dispatchResult()) {
+          <p class="mt-3 text-sm" [class]="dispatchResult()!.sent > 0 ? 'text-emerald-600' : 'text-amber-600'">
+            {{ dispatchResult()!.message }}
           </p>
         }
         @if (error()) {
@@ -182,8 +174,7 @@ export class CommandsComponent implements OnInit {
   deletingDirectiveId = signal<string | null>(null);
 
   error = signal('');
-  telegramWarning = signal('');
-  telegramResult = signal<{ sent: number; failed: number; message: string } | null>(null);
+  dispatchResult = signal<{ sent: number; failed: number; message: string } | null>(null);
   aiWarning = signal('');
   directives = signal<any[]>([]);
 
@@ -199,24 +190,7 @@ export class CommandsComponent implements OnInit {
 
   ngOnInit() {
     this.companyContext.ensureCompany().subscribe({
-      next: (id) => {
-        this.loadDirectives();
-        this.loadTelegramStatus(id);
-      },
-    });
-  }
-
-  loadTelegramStatus(companyId: string) {
-    this.api.getTelegramUserStatus(companyId).subscribe({
-      next: (s) => {
-        if (!s.configured) {
-          this.telegramWarning.set(this.i18n.t('commands.telegramEnvWarning'));
-        } else if (!s.connected) {
-          this.telegramWarning.set(this.i18n.t('commands.telegramOtpWarning'));
-        } else {
-          this.telegramWarning.set('');
-        }
-      },
+      next: () => this.loadDirectives(),
     });
   }
 
@@ -226,14 +200,15 @@ export class CommandsComponent implements OnInit {
 
     this.loading.set(true);
     this.error.set('');
-    this.telegramResult.set(null);
+    this.dispatchResult.set(null);
     this.aiWarning.set('');
     this.api.createDirective(companyId, this.instruction.trim(), this.autoSend).subscribe({
       next: (res) => {
         this.loading.set(false);
         this.instruction = '';
         if (res.aiWarning) this.aiWarning.set(res.aiWarning);
-        if (res.telegramSummary) this.telegramResult.set(res.telegramSummary);
+        const summary = res.dispatchSummary ?? res.telegramSummary;
+        if (summary) this.dispatchResult.set(summary);
         this.loadDirectives();
       },
       error: (err) => {
@@ -250,13 +225,13 @@ export class CommandsComponent implements OnInit {
 
     this.dispatchLoading.set(true);
     this.error.set('');
-    this.telegramResult.set(null);
+    this.dispatchResult.set(null);
 
     this.api.dispatchTasks(companyId, directiveId).subscribe({
       next: (res) => {
         this.dispatchLoading.set(false);
-        const summary = res.telegramSummary ?? res;
-        if (summary?.message) this.telegramResult.set(summary);
+        const summary = res.dispatchSummary ?? res.telegramSummary ?? res;
+        if (summary?.message) this.dispatchResult.set(summary);
         this.loadDirectives();
       },
       error: (err) => {
@@ -277,7 +252,7 @@ export class CommandsComponent implements OnInit {
     this.api.followUpDirectives(companyId).subscribe({
       next: (res: { followedUp?: number }) => {
         this.followUpLoading.set(false);
-        this.telegramResult.set({
+        this.dispatchResult.set({
           sent: res.followedUp ?? 0,
           failed: 0,
           message: this.i18n.t('commands.followUpResult', { count: res.followedUp ?? 0 }),

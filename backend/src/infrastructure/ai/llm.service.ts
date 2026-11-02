@@ -49,9 +49,9 @@ export class LlmService {
   }
 
   private getGroqModel(fast = false): string {
-    return fast
-      ? (this.configService.get<string>('groq.modelFast') ?? 'llama-3.1-8b-instant')
-      : (this.configService.get<string>('groq.model') ?? 'llama-3.3-70b-versatile');
+    const main = this.configService.get<string>('groq.model') ?? 'llama-3.3-70b-versatile';
+    if (!fast) return main;
+    return this.configService.get<string>('groq.modelFast') ?? main;
   }
 
   async chat(params: ChatParams, fast = false): Promise<OpenAI.Chat.ChatCompletion> {
@@ -92,6 +92,18 @@ export class LlmService {
 
   private async callGroq(params: ChatParams, fast = false): Promise<OpenAI.Chat.ChatCompletion> {
     const groqModel = this.getGroqModel(fast);
-    return this.groq!.chat.completions.create({ ...params, model: groqModel });
+    try {
+      return await this.groq!.chat.completions.create({ ...params, model: groqModel });
+    } catch (err) {
+      const fallback = this.configService.get<string>('groq.model') ?? 'llama-3.3-70b-versatile';
+      const e = err as { status?: number; code?: string; error?: { code?: string } };
+      const missingModel =
+        e?.status === 404 || e?.code === 'model_not_found' || e?.error?.code === 'model_not_found';
+      if (missingModel && groqModel !== fallback) {
+        this.logger.warn(`Groq model ${groqModel} unavailable — retrying with ${fallback}`);
+        return this.groq!.chat.completions.create({ ...params, model: fallback });
+      }
+      throw err;
+    }
   }
 }

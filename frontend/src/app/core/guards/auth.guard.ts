@@ -20,6 +20,28 @@ export const authGuard: CanActivateFn = () => {
   return false;
 };
 
+export const employeeGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (!auth.isAuthenticated() || !auth.getToken()) {
+    clearStaleSession(router);
+    return false;
+  }
+  if (auth.user()?.role === 'EMPLOYEE') return true;
+  router.navigate(['/commands']);
+  return false;
+};
+
+export const adminGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (auth.user()?.role === 'EMPLOYEE') {
+    router.navigate(['/work']);
+    return false;
+  }
+  return true;
+};
+
 export const guestGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
@@ -27,6 +49,11 @@ export const guestGuard: CanActivateFn = () => {
   const api = inject(ApiService);
 
   if (!auth.isAuthenticated() || !auth.getToken()) return true;
+
+  if (auth.user()?.role === 'EMPLOYEE') {
+    router.navigate(['/work']);
+    return false;
+  }
 
   return companyContext.ensureCompany().pipe(
     switchMap((id) => api.getCompany(id)),

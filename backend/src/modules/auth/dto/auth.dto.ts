@@ -34,7 +34,7 @@ export class RegisterDto {
 
 export class LoginDto {
   @ApiProperty({ example: 'john@company.com' })
-  @IsEmail()
+  @IsEmail({ allow_utf8_local_part: true })
   email: string;
 
   @ApiProperty({ example: 'SecurePass123!' })

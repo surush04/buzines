@@ -9,10 +9,12 @@ import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../shared/pipes/translate.pipe';
 import { LanguageSwitcherComponent } from '../../../shared/components/language-switcher/language-switcher.component';
 
+import { PasswordInputComponent } from '../../../shared/components/password-input/password-input.component';
+
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslatePipe, LanguageSwitcherComponent],
+  imports: [FormsModule, RouterLink, TranslatePipe, LanguageSwitcherComponent, PasswordInputComponent],
   template: `
     <div class="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-primary-950 to-slate-900 p-4">
       <div class="absolute right-4 top-4 z-10">
@@ -44,7 +46,13 @@ import { LanguageSwitcherComponent } from '../../../shared/components/language-s
             </div>
             <div>
               <label class="mb-1.5 block text-sm font-medium text-slate-300">{{ 'auth.password' | t }}</label>
-              <input type="password" [(ngModel)]="password" name="password" class="input-field !bg-white/5 !border-white/10 !text-white" [placeholder]="'auth.passwordPlaceholder' | t" required />
+              <app-password-input
+                [(value)]="password"
+                name="password"
+                [placeholder]="'auth.passwordPlaceholder' | t"
+                [required]="true"
+                extraClass="!bg-white/5 !border-white/10 !text-white"
+              />
             </div>
             <button type="submit" class="btn-primary w-full" [disabled]="loading()">
               {{ loading() ? ('auth.loggingIn' | t) : ('auth.login' | t) }}
@@ -77,6 +85,11 @@ export class LoginComponent {
     this.error.set('');
     this.auth.login(this.email, this.password).subscribe({
       next: () => {
+        if (this.auth.user()?.role === 'EMPLOYEE') {
+          this.loading.set(false);
+          this.router.navigate(['/work']);
+          return;
+        }
         this.companyContext.ensureCompany().pipe(
           switchMap((id) => this.api.getCompany(id)),
         ).subscribe({

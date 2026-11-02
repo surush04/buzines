@@ -261,7 +261,7 @@ export class BusinessContextService {
           deadline: true,
           assignments: {
             select: {
-              employee: { select: { firstName: true, telegramUsername: true } },
+              employee: { select: { firstName: true } },
               status: true,
             },
           },

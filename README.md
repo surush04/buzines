@@ -70,7 +70,13 @@ npm install
 npm start
 ```
 
-App runs at `http://localhost:4200`
+App runs at `http://localhost:4201`
+
+## Public access (friend in a browser)
+
+Frontend: Vercel. API: this Windows PC on port 3000, published with Cloudflare Tunnel. SQLite stays in `backend/prisma/dev.db`.
+
+See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for Cloudflare, Vercel, CORS, backups, and restart steps.
 
 ## Project Structure
 
@@ -98,6 +104,7 @@ Buzines/
 - [Database Schema](./docs/DATABASE.md)
 - [API Reference](./docs/API.md)
 - [AI Workflow](./docs/AI_WORKFLOW.md)
+- [Public deployment](./DEPLOYMENT.md)
 
 ## License
 

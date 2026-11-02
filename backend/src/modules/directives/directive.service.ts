@@ -1,5 +1,4 @@
 import { Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import {
   DirectiveStatus,
   ProjectPriority,
@@ -30,14 +29,13 @@ export class DirectiveService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationService,
-    private configService: ConfigService,
     private businessContext: BusinessContextService,
     private aiEngine: AiEngineService,
     private llm: LlmService,
   ) {}
 
-  /** Admin gives one order — AI creates tasks; Telegram optional */
-  async createAndExecute(companyId: string, instruction: string, sendTelegram = true) {
+  /** Admin gives one order — AI creates tasks and shows them in the employee app */
+  async createAndExecute(companyId: string, instruction: string, _notify = true) {
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
       select: { onboardingDone: true, name: true },
@@ -88,21 +86,21 @@ export class DirectiveService {
         tasks,
       );
 
-      let telegramSummary = {
-        sent: 0,
-        failed: 0,
-        total: createdTasks.length,
-        message: 'Вазифаҳо сохта шуд — барои ирсол «Ирсоли вазифа»-ро пахш кунед',
-      };
-
-      if (sendTelegram) {
-        telegramSummary = await this.dispatchAllTasks(companyId, instruction, createdTasks);
-      }
+      const dispatchSummary = _notify
+        ? await this.dispatchAllTasks(companyId, instruction, createdTasks)
+        : {
+            sent: 0,
+            failed: 0,
+            total: createdTasks.length,
+            recipients: [],
+            message:
+              'Вазифаҳо сохта шуданд. Барои ирсол ба барномаи корманд тугмаи «Ирсоли вазифа»-ро пахш кунед.',
+          };
 
       await this.prisma.adminDirective.update({
         where: { id: directive.id },
         data: {
-          status: sendTelegram ? DirectiveStatus.DISPATCHED : DirectiveStatus.IN_PROGRESS,
+          status: _notify ? DirectiveStatus.DISPATCHED : DirectiveStatus.RECEIVED,
           aiAnalysis: analysis,
           projectId: project.id,
           tasksTotal: createdTasks.length,
@@ -110,7 +108,12 @@ export class DirectiveService {
         },
       });
 
-      return { ...(await this.getDirective(directive.id)), telegramSummary, aiWarning };
+      return {
+        ...(await this.getDirective(directive.id)),
+        dispatchSummary,
+        telegramSummary: dispatchSummary,
+        aiWarning,
+      };
     } catch (err) {
       this.logger.error('Directive execution failed', err);
       await this.prisma.adminDirective.update({
@@ -166,7 +169,7 @@ export class DirectiveService {
                         firstName: true,
                         lastName: true,
                         role: true,
-                        telegramChatId: true,
+                        email: true,
                       },
                     },
                   },
@@ -244,7 +247,7 @@ export class DirectiveService {
         NotificationType.REMINDER,
         'Task Follow-up',
         message,
-        [NotificationChannel.IN_APP, NotificationChannel.TELEGRAM],
+        [NotificationChannel.IN_APP],
       );
       followedUp++;
     }
@@ -308,7 +311,7 @@ export class DirectiveService {
     await this.prisma.task.deleteMany({ where: { id: { in: taskIds } } });
   }
 
-  /** Send existing task assignments via Telegram — does NOT create new tasks */
+  /** Notify employees about existing task assignments in their app */
   async dispatchExistingTasks(companyId: string, directiveId?: string) {
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
@@ -339,7 +342,7 @@ export class DirectiveService {
         ...(projectId ? { task: { projectId } } : { task: { project: { companyId } } }),
       },
       include: {
-        employee: { select: { id: true, companyId: true, telegramUsername: true, firstName: true } },
+        employee: { select: { id: true, companyId: true, firstName: true, email: true } },
         task: { select: { id: true, title: true } },
       },
     });
@@ -782,7 +785,7 @@ JSON: { "tasks": [{ "title", "description", "category": "FRONTEND|BACKEND|DESIGN
 
     const employees = await this.prisma.employee.findMany({
       where: { id: { in: tasks.map((t) => t.employeeId) } },
-      select: { id: true, companyId: true, telegramUsername: true, firstName: true },
+      select: { id: true, companyId: true, firstName: true, email: true },
     });
     const employeeMap = new Map(employees.map((e) => [e.id, e]));
 
@@ -790,8 +793,6 @@ JSON: { "tasks": [{ "title", "description", "category": "FRONTEND|BACKEND|DESIGN
     const locale = this.businessContext.localeForLang(lang);
 
     let sent = 0;
-    let failed = 0;
-    let reason: string | undefined;
     const recipients: Array<{
       username: string;
       name: string;
@@ -825,40 +826,21 @@ JSON: { "tasks": [{ "title", "description", "category": "FRONTEND|BACKEND|DESIGN
       );
 
       if (employee) {
-        const result = await this.notifications.sendTelegramToEmployee(employee, message);
+        sent++;
         recipients.push({
-          username: employee.telegramUsername ?? '?',
+          username: employee.email,
           name: employee.firstName,
-          sent: result.sent,
-          reason: result.reason,
+          sent: true,
         });
-        if (result.sent) sent++;
-        else {
-          failed++;
-          reason = reason ?? result.reason;
-        }
       }
-    }
-
-    const uniqueFailed = [...new Map(
-      recipients.filter((r) => !r.sent).map((r) => [r.username, r]),
-    ).values()];
-
-    let detailMessage = sent > 0 ? `${sent} паём фиристода шуд` : this.notifications.telegramReasonMessage(reason);
-    if (uniqueFailed.length) {
-      detailMessage +=
-        '. Нафиристода: ' +
-        uniqueFailed
-          .map((r) => `@${r.username} (${this.notifications.telegramReasonMessage(r.reason)})`)
-          .join('; ');
     }
 
     return {
       sent,
-      failed,
+      failed: 0,
       total: tasks.length,
       recipients,
-      message: detailMessage,
+      message: `${sent} вазифа дар барномаи корманд пайдо шуд`,
     };
   }
 }

@@ -11,7 +11,9 @@ import { AiModule } from './infrastructure/ai/ai.module';
 import { NotificationModule } from './infrastructure/notifications/notification.module';
 import { WebSocketModule } from './infrastructure/websocket/websocket.module';
 import { DirectiveModule } from './modules/directives/directive.module';
-import { TelegramModule } from './infrastructure/telegram/telegram.module';
+import { WorkModule } from './modules/work/work.module';
+import { CeoModule } from './modules/ceo/ceo.module';
+import { BosModule } from './modules/bos/bos.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { HealthController } from './health.controller';
 
@@ -27,7 +29,9 @@ import { HealthController } from './health.controller';
     NotificationModule,
     WebSocketModule,
     DirectiveModule,
-    TelegramModule,
+    WorkModule,
+    CeoModule,
+    BosModule,
   ],
   controllers: [HealthController],
   providers: [

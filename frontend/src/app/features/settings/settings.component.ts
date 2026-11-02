@@ -17,101 +17,9 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
         <p class="text-sm text-slate-500">{{ 'settings.subtitle' | t }}</p>
       </div>
 
-      <!-- Personal Telegram -->
       <div class="glass-card p-6">
-        <div class="mb-4 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="text-3xl">✈️</span>
-            <div>
-              <h3 class="font-semibold text-slate-900 dark:text-white">{{ 'settings.telegramTitle' | t }}</h3>
-              <p class="text-xs text-slate-500">{{ 'settings.telegramDesc' | t }}</p>
-            </div>
-          </div>
-          @if (userTelegram()?.connected) {
-            <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">{{ 'settings.connected' | t }}</span>
-          } @else {
-            <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">{{ 'settings.disconnected' | t }}</span>
-          }
-        </div>
-
-        @if (userTelegram()?.connected) {
-          <div class="mb-4 rounded-xl bg-emerald-50 p-4 text-sm dark:bg-emerald-900/20">
-            <p><strong>&#64;{{ userTelegram()?.username }}</strong> — {{ 'settings.messagesFrom' | t }}</p>
-            <p class="text-xs text-slate-500 mt-1">{{ userTelegram()?.phone }}</p>
-          </div>
-        } @else {
-          <div class="space-y-4">
-            <div class="rounded-xl border border-slate-200/60 p-4 dark:border-slate-700">
-              <p class="mb-3 text-xs font-medium text-slate-700 dark:text-slate-300">{{ 'settings.apiCredentialsTitle' | t }}</p>
-              <div class="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label class="mb-1 block text-xs text-slate-500">{{ 'settings.apiId' | t }}</label>
-                  <input [(ngModel)]="telegramApiId" type="number" class="input-field" [placeholder]="'settings.apiIdPlaceholder' | t" />
-                </div>
-                <div>
-                  <label class="mb-1 block text-xs text-slate-500">{{ 'settings.apiHash' | t }}</label>
-                  <input [(ngModel)]="telegramApiHash" type="text" class="input-field" [placeholder]="'settings.apiHashPlaceholder' | t" />
-                </div>
-              </div>
-              <div class="mt-3 flex flex-wrap items-center gap-2">
-                <button class="btn-secondary !text-xs" (click)="saveTelegramApiCredentials()" [disabled]="telegramLoading() || !telegramApiId || !telegramApiHash.trim()">
-                  {{ telegramLoading() ? '...' : ('settings.saveApiCredentials' | t) }}
-                </button>
-                @if (userTelegram()?.configured) {
-                  <span class="text-xs text-emerald-600">{{ 'settings.apiConfigured' | t }}</span>
-                }
-              </div>
-            </div>
-
-            <div class="rounded-xl border border-slate-200/60 p-4 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-400">
-              <p class="font-medium mb-2">{{ 'settings.stepsTitle' | t }}</p>
-              <ol class="list-decimal space-y-1 pl-4">
-                <li>{{ 'settings.step1' | t }}</li>
-                <li>{{ 'settings.step2' | t }}</li>
-                <li>{{ 'settings.step3' | t }}</li>
-                <li>{{ 'settings.step4' | t }}</li>
-              </ol>
-            </div>
-
-            <div>
-              <label class="mb-1 block text-xs text-slate-500">{{ 'settings.phone' | t }}</label>
-              <input [(ngModel)]="phone" class="input-field" [placeholder]="'settings.phonePlaceholder' | t" />
-            </div>
-
-            @if (codeSent()) {
-              @if (otpHint()) {
-                <p class="rounded-lg bg-blue-50 p-3 text-xs text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
-                  {{ otpHint() }}
-                </p>
-              }
-              <div>
-                <label class="mb-1 block text-xs text-slate-500">{{ 'settings.otp' | t }}</label>
-                <input [(ngModel)]="otpCode" class="input-field" [placeholder]="'settings.otpPlaceholder' | t" inputmode="numeric" />
-              </div>
-              <div>
-                <label class="mb-1 block text-xs text-slate-500">{{ 'settings.password2fa' | t }}</label>
-                <input [(ngModel)]="password2fa" type="password" class="input-field" [placeholder]="'settings.password2faPlaceholder' | t" />
-              </div>
-            }
-
-            <div class="flex flex-wrap gap-2">
-              @if (!codeSent()) {
-                <button class="btn-primary !text-xs" (click)="sendCode()" [disabled]="telegramLoading() || !phone.trim()">
-                  {{ telegramLoading() ? ('settings.connecting' | t) : ('settings.sendOtp' | t) }}
-                </button>
-              } @else {
-                <button class="btn-primary !text-xs" (click)="confirmCode()" [disabled]="telegramLoading() || !otpCode.trim()">
-                  {{ telegramLoading() ? '...' : ('settings.connect' | t) }}
-                </button>
-              }
-              <button class="btn-secondary !text-xs" (click)="loadUserTelegram()" [disabled]="telegramLoading()">{{ 'settings.check' | t }}</button>
-            </div>
-          </div>
-        }
-
-        @if (telegramError()) {
-          <p class="mt-3 text-sm text-red-500">{{ telegramError() }}</p>
-        }
+        <h3 class="mb-2 font-semibold text-slate-900 dark:text-white">{{ 'settings.employeeAppTitle' | t }}</h3>
+        <p class="text-sm text-slate-500">{{ 'settings.employeeAppDesc' | t }}</p>
       </div>
 
       <!-- Business profile for AI -->
@@ -155,8 +63,10 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
         <div class="glass-card p-6">
           <h3 class="mb-4 font-semibold">{{ 'settings.aiSettings' | t }}</h3>
           <select [(ngModel)]="aiSettings.autonomyLevel" class="input-field mb-3">
-            <option value="FULL_AUTONOMY">{{ 'settings.autonomyFull' | t }}</option>
+            <option value="OBSERVER">{{ 'settings.autonomyObserver' | t }}</option>
             <option value="ADVISOR">{{ 'settings.autonomyAdvisor' | t }}</option>
+            <option value="GUIDED_AUTONOMY">{{ 'settings.autonomyGuided' | t }}</option>
+            <option value="FULL_AUTONOMY">{{ 'settings.autonomyFull' | t }}</option>
           </select>
           <button class="btn-primary !text-xs w-full" (click)="saveAiSettings()" [disabled]="saving()">{{ 'settings.saveAi' | t }}</button>
         </div>
@@ -175,22 +85,10 @@ export class SettingsComponent implements OnInit {
   businessProfile = { description: '', businessContext: '' };
   saving = signal(false);
   saveMsg = signal('');
-  userTelegram = signal<any>(null);
-  telegramLoading = signal(false);
-  telegramError = signal('');
-  phone = '+992000406246';
-  telegramApiId: number | null = null;
-  telegramApiHash = '';
-  otpCode = '';
-  password2fa = '';
-  codeSent = signal(false);
-  otpHint = signal('');
 
   ngOnInit() {
     this.companyContext.ensureCompany().subscribe({
       next: (id) => {
-        this.loadUserTelegram();
-        this.loadTelegramApiCredentials();
         this.api.getCompany(id).subscribe({
           next: (company) => {
             if (company.settings) Object.assign(this.settings, company.settings);
@@ -199,92 +97,6 @@ export class SettingsComponent implements OnInit {
             this.businessProfile.businessContext = company.aiSettings?.businessContext ?? '';
           },
         });
-      },
-    });
-  }
-
-  loadUserTelegram() {
-    const id = this.companyContext.companyId();
-    if (!id) return;
-    this.telegramLoading.set(true);
-    this.api.getTelegramUserStatus(id).subscribe({
-      next: (s) => {
-        this.userTelegram.set(s);
-        if (s.apiId) this.telegramApiId = s.apiId;
-        if (s.apiHash) this.telegramApiHash = s.apiHash;
-        this.telegramLoading.set(false);
-      },
-      error: (err) => {
-        this.telegramLoading.set(false);
-        this.telegramError.set(err.error?.message ?? this.i18n.t('settings.error'));
-      },
-    });
-  }
-
-  loadTelegramApiCredentials() {
-    const id = this.companyContext.companyId();
-    if (!id) return;
-    this.api.getTelegramApiCredentials(id).subscribe({
-      next: (c) => {
-        if (c.apiId) this.telegramApiId = c.apiId;
-        if (c.apiHash) this.telegramApiHash = c.apiHash;
-      },
-    });
-  }
-
-  saveTelegramApiCredentials() {
-    const id = this.companyContext.companyId();
-    if (!id || !this.telegramApiId || !this.telegramApiHash.trim()) return;
-    this.telegramLoading.set(true);
-    this.telegramError.set('');
-    this.api.saveTelegramApiCredentials(id, this.telegramApiId, this.telegramApiHash.trim()).subscribe({
-      next: () => {
-        this.telegramLoading.set(false);
-        this.saveMsg.set(this.i18n.t('settings.apiCredentialsSaved'));
-        this.loadUserTelegram();
-      },
-      error: (err) => {
-        this.telegramLoading.set(false);
-        this.telegramError.set(err.error?.message ?? this.i18n.t('settings.error'));
-      },
-    });
-  }
-
-  sendCode() {
-    const id = this.companyContext.companyId();
-    if (!id) return;
-    this.telegramLoading.set(true);
-    this.telegramError.set('');
-    this.api.sendTelegramUserCode(id, this.phone.trim()).subscribe({
-      next: (res) => {
-        this.codeSent.set(true);
-        this.otpHint.set(res.hint ?? this.i18n.t('settings.enterOtp'));
-        this.otpCode = '';
-        this.telegramLoading.set(false);
-      },
-      error: (err) => {
-        this.telegramLoading.set(false);
-        this.telegramError.set(err.error?.message ?? this.i18n.t('settings.otpFailed'));
-      },
-    });
-  }
-
-  confirmCode() {
-    const id = this.companyContext.companyId();
-    if (!id) return;
-    this.telegramLoading.set(true);
-    this.telegramError.set('');
-    this.api.confirmTelegramUser(id, this.otpCode.trim(), this.password2fa || undefined).subscribe({
-      next: () => {
-        this.codeSent.set(false);
-        this.otpCode = '';
-        this.otpHint.set('');
-        this.telegramLoading.set(false);
-        this.loadUserTelegram();
-      },
-      error: (err) => {
-        this.telegramLoading.set(false);
-        this.telegramError.set(err.error?.message ?? this.i18n.t('settings.connectFailed'));
       },
     });
   }

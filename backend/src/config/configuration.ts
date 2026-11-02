@@ -1,7 +1,7 @@
 export default () => ({
   port: parseInt(process.env.PORT ?? '3000', 10),
   nodeEnv: process.env.NODE_ENV ?? 'development',
-  frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:4200',
+  frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:4201',
   database: {
     url: process.env.DATABASE_URL ?? 'file:./prod.db',
   },
@@ -21,7 +21,7 @@ export default () => ({
   groq: {
     apiKey: process.env.GROQ_API_KEY ?? '',
     model: process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile',
-    modelFast: process.env.GROQ_MODEL_FAST ?? 'llama-3.1-8b-instant',
+    modelFast: process.env.GROQ_MODEL_FAST ?? 'llama-3.3-70b-versatile',
   },
   ai: {
     provider: process.env.AI_PROVIDER ?? 'auto',

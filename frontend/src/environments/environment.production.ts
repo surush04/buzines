@@ -1,5 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://buzines-api-production.up.railway.app/api/v1',
-  wsUrl: 'https://buzines-api-production.up.railway.app/events',
+  // Replaced at Vercel build time by scripts/patch-env.mjs from API_URL / WS_URL.
+  apiUrl: 'https://REPLACE_WITH_CLOUDFLARE_PUBLIC_HOST/api/v1',
+  wsUrl: 'https://REPLACE_WITH_CLOUDFLARE_PUBLIC_HOST/events',
 };

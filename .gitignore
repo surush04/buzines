@@ -12,3 +12,6 @@ frontend/node_modules/
 backend/dist/
 frontend/dist/
 *.log
+backups/
+!backups/.gitkeep
+.cloudflared-url.txt

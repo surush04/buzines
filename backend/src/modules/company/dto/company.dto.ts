@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsEnum, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsEnum, IsNumber, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProjectPriority, ProjectStatus } from '@prisma/client';
 
@@ -57,9 +57,11 @@ export class CreateEmployeeDto {
   @IsString()
   phone?: string;
 
-  @ApiProperty({ example: 'Berjandi04', description: 'Telegram username (без @)' })
+  @ApiPropertyOptional({ example: 'Worker123!' })
+  @IsOptional()
   @IsString()
-  telegramUsername: string;
+  @MinLength(8)
+  password?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

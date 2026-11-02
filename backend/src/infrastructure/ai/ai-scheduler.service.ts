@@ -3,6 +3,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AiEngineService } from './ai-engine.service';
 import { DirectiveService } from '../../modules/directives/directive.service';
+import { OpsService } from '../../modules/bos/ops.service';
+import { WorkflowService } from '../../modules/bos/workflow.service';
 
 @Injectable()
 export class AiSchedulerService {
@@ -12,6 +14,8 @@ export class AiSchedulerService {
     private prisma: PrismaService,
     private aiEngine: AiEngineService,
     private directiveService: DirectiveService,
+    private ops: OpsService,
+    private workflows: WorkflowService,
   ) {}
 
   @Cron('30 7 * * *')
@@ -23,10 +27,16 @@ export class AiSchedulerService {
 
     for (const company of companies) {
       try {
+        const settings = await this.ops.getAiSettings(company.id);
+        if (settings.aiPaused) {
+          await this.ops.recordJob('daily-plans', 'SKIPPED', 'AI paused', company.id);
+          continue;
+        }
         await this.aiEngine.generateDailyPlans(company.id);
-        this.logger.log(`Daily plans generated for ${company.name}`);
+        await this.ops.recordJob('daily-plans', 'SUCCESS', company.name, company.id);
       } catch (err) {
         this.logger.error(`Failed daily plans for ${company.name}`, err);
+        await this.ops.recordJob('daily-plans', 'FAILED', String(err).slice(0, 200), company.id);
       }
     }
   }
@@ -36,7 +46,13 @@ export class AiSchedulerService {
     this.logger.log('Running follow-up checks...');
     const companies = await this.prisma.company.findMany({ select: { id: true } });
     for (const company of companies) {
-      await this.directiveService.followUpIncompleteTasks(company.id);
+      try {
+        await this.directiveService.followUpIncompleteTasks(company.id);
+        await this.workflows.tickOverdue(company.id);
+        await this.ops.recordJob('follow-up', 'SUCCESS', undefined, company.id);
+      } catch (err) {
+        await this.ops.recordJob('follow-up', 'FAILED', String(err).slice(0, 200), company.id);
+      }
     }
   }
 

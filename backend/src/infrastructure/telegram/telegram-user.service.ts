@@ -286,7 +286,12 @@ export class TelegramUserService implements OnModuleInit {
         30000,
         'OTP фиристода нашуд — бори дигар кӯшиш кунед',
       );
-
+      this.logger.log(
+        `Telegram sendCode result: ${JSON.stringify({
+          isCodeViaApp: result.isCodeViaApp,
+          phoneCodeHashReceived: Boolean(result.phoneCodeHash),
+        })}`,
+      );
       this.pendingAuth.set(companyId, {
         phone: normalizedPhone,
         phoneCodeHash: result.phoneCodeHash,

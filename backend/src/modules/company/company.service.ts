@@ -15,7 +15,8 @@ import {
   OnboardingDto,
   UpdateBusinessProfileDto,
 } from './dto/company.dto';
-import { ProjectStatus } from '@prisma/client';
+import { ProjectStatus, UserRole } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class CompanyService {
@@ -65,26 +66,42 @@ export class CompanyService {
 
   async createEmployee(companyId: string, userId: string, dto: CreateEmployeeDto) {
     await this.verifyOwnership(companyId, userId);
-    const { skills, ...employeeData } = dto;
-
-    if (employeeData.telegramUsername) {
-      employeeData.telegramUsername = employeeData.telegramUsername.replace(/^@/, '').trim();
-    }
+    const { skills, password, ...employeeData } = dto;
+    const email = employeeData.email.toLowerCase().trim();
+    const loginPassword = password?.trim() || 'Worker123!';
 
     const existing = await this.prisma.employee.findFirst({
-      where: { companyId, email: employeeData.email },
+      where: { companyId, email },
     });
     if (existing) {
       throw new ConflictException(
-        `Коргар бо email «${employeeData.email}» аллакай вуҷуд дорад. Email-и дигар истифода баред.`,
+        `Коргар бо email «${email}» аллакай вуҷуд дорад. Email-и дигар истифода баред.`,
       );
     }
 
+    const existingUser = await this.prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      throw new ConflictException(`Email «${email}» аллакай барои login истифода мешавад.`);
+    }
+
     try {
-      return await this.prisma.employee.create({
+      const passwordHash = await bcrypt.hash(loginPassword, 12);
+      const user = await this.prisma.user.create({
+        data: {
+          email,
+          passwordHash,
+          firstName: employeeData.firstName,
+          lastName: employeeData.lastName,
+          role: UserRole.EMPLOYEE,
+        },
+      });
+
+      const employee = await this.prisma.employee.create({
         data: {
           ...employeeData,
+          email,
           companyId,
+          userId: user.id,
           skills: skills?.length
             ? { create: skills.map((name) => ({ name })) }
             : undefined,
@@ -92,6 +109,8 @@ export class CompanyService {
         },
         include: { skills: true, aiProfile: true, department: true },
       });
+
+      return { ...employee, loginEmail: email, loginPassword };
     } catch (err: unknown) {
       if (
         typeof err === 'object' &&
@@ -100,7 +119,7 @@ export class CompanyService {
         (err as { code: string }).code === 'P2002'
       ) {
         throw new ConflictException(
-          `Коргар бо email «${employeeData.email}» аллакай вуҷуд дорад. Email-и дигар истифода баред.`,
+          `Коргар бо email «${email}» аллакай вуҷуд дорад. Email-и дигар истифода баред.`,
         );
       }
       throw err;
@@ -114,6 +133,7 @@ export class CompanyService {
       include: {
         skills: true,
         aiProfile: true,
+        kpis: true,
         department: true,
         manager: { select: { id: true, firstName: true, lastName: true } },
       },
@@ -353,6 +373,12 @@ export class CompanyService {
     await this.verifyOwnership(companyId, userId);
 
     await this.prisma.$transaction([
+      this.prisma.verificationReview.deleteMany({ where: { report: { companyId } } }),
+      this.prisma.completionReport.deleteMany({ where: { companyId } }),
+      this.prisma.workflowRun.deleteMany({ where: { companyId } }),
+      this.prisma.workflowDefinition.deleteMany({ where: { companyId } }),
+      this.prisma.aiOperation.deleteMany({ where: { companyId } }),
+      this.prisma.auditEvent.deleteMany({ where: { companyId } }),
       this.prisma.taskResponse.deleteMany({ where: { employee: { companyId } } }),
       this.prisma.notification.deleteMany({ where: { employee: { companyId } } }),
       this.prisma.message.deleteMany({ where: { employee: { companyId } } }),

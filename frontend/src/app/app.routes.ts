@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard, onboardingGuard } from './core/guards/auth.guard';
+import { adminGuard, authGuard, employeeGuard, guestGuard, onboardingGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -12,13 +12,18 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'work',
+    canActivate: [authGuard, employeeGuard],
+    loadComponent: () => import('./features/work/work.component').then(m => m.WorkComponent),
+  },
+  {
     path: 'onboarding',
-    canActivate: [authGuard],
+    canActivate: [authGuard, adminGuard],
     loadComponent: () => import('./features/onboarding/onboarding.component').then(m => m.OnboardingComponent),
   },
   {
     path: '',
-    canActivate: [authGuard, onboardingGuard],
+    canActivate: [authGuard, adminGuard, onboardingGuard],
     loadComponent: () => import('./shared/components/layout/layout.component').then(m => m.LayoutComponent),
     children: [
       { path: 'commands', loadComponent: () => import('./features/commands/commands.component').then(m => m.CommandsComponent) },
@@ -29,6 +34,7 @@ export const routes: Routes = [
       { path: 'reports', loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent) },
       { path: 'calendar', loadComponent: () => import('./features/calendar/calendar.component').then(m => m.CalendarComponent) },
       { path: 'settings', loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent) },
+      { path: 'os', loadComponent: () => import('./features/os/os.component').then(m => m.OsComponent) },
       { path: '', redirectTo: 'commands', pathMatch: 'full' },
     ],
   },

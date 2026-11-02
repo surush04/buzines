@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="tg">
+<head>
+  <meta charset="UTF-8" />
+  <title>Buzines — AI Business Manager</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
+      color: #0f172a;
+      line-height: 1.55;
+      font-size: 12.5px;
+      margin: 0;
+    }
+    h1 { font-size: 26px; margin: 0 0 8px; color: #1e3a8a; }
+    h2 { font-size: 18px; margin: 28px 0 10px; color: #1d4ed8; page-break-after: avoid; }
+    h3 { font-size: 14px; margin: 16px 0 8px; color: #334155; page-break-after: avoid; }
+    p { margin: 0 0 10px; }
+    ul { margin: 0 0 12px; padding-left: 18px; }
+    li { margin-bottom: 4px; }
+    .cover {
+      border-radius: 16px;
+      padding: 28px;
+      background: linear-gradient(135deg, #1e3a8a, #4f46e5);
+      color: #fff;
+      margin-bottom: 22px;
+    }
+    .cover h1, .cover p { color: #fff; }
+    .muted { opacity: .9; font-size: 13px; }
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin: 10px 0 16px;
+      background: #f8fafc;
+    }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 12px; }
+    th, td { border: 1px solid #e2e8f0; padding: 7px 8px; text-align: left; vertical-align: top; }
+    th { background: #eff6ff; }
+    img.shot {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      margin: 6px 0 16px;
+      page-break-inside: avoid;
+    }
+    .caption { font-size: 11px; color: #64748b; margin: -10px 0 16px; }
+    .flow { font-weight: 600; color: #1e40af; }
+    footer { margin-top: 24px; font-size: 11px; color: #64748b; }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <h1>Buzines — AI Business Manager</h1>
+    <p class="muted">Дастури пурраи система: чӣ кор мекунад, кадом функсияҳо дорад ва чӣ гуна истифода мешавад.</p>
+    <p class="muted">Сана: 27 октябри 2026 · Забонҳо: тоҷикӣ / русӣ / англисӣ</p>
+  </section>
+
+  <h2>1. Система чист?</h2>
+  <p>
+    <strong>Buzines</strong> платформаи идоракунии бизнес бо ёрии AI аст.
+    Сардор танҳо мақсадро мегӯяд («фурӯш зиёд шавад»). AI таҳлил мекунад, вазифаҳо месозад,
+    ба коргари мувофиқ таъин мекунад ва иҷроро назорат мекунад.
+  </p>
+  <div class="card">
+    <p class="flow">Раванди асосӣ</p>
+    <p>Фармони сардор → таҳлили AI → вазифаҳо → барномаи ҳар коргар → гузориш → пайгирии AI</p>
+  </div>
+  <p>Ду намуди ҳисоб аст:</p>
+  <ul>
+    <li><strong>Сардор (COMPANY_OWNER)</strong> — панели идоракунӣ: фармон, коргарон, хулоса, лоиҳаҳо, AI, гузориш, тақвим, танзимот.</li>
+    <li><strong>Коргар (EMPLOYEE)</strong> — барномаи алоҳидаи <code>/work</code>: вазифаҳои худро мебинад, иҷро мекунад ва гузориш медиҳад.</li>
+  </ul>
+  <p>Telegram барои ирсоли вазифа истифода намешавад. Ҳар коргар бо email ва парол ба барномаи худ ворид мешавад.</p>
+
+  <h2>2. Воридшавӣ ва сабти ном</h2>
+  <h3>Ворид шудан</h3>
+  <p>Саҳифаи аввал. Email, парол, интихоби забон (ТОҶ / РУС / ENG). Сардор ба панел меравад, коргар ба «Кори ман».</p>
+  <img class="shot" src="screenshots/01-login.png" alt="Саҳифаи воридшавӣ" />
+  <p class="caption">Расм 1. Ворид шудан — http://localhost:4201/auth/login</p>
+
+  <h3>Сабти ном</h3>
+  <p>Соҳиби бизнес ҳисоби нав месозад: ном, насаб, email, парол. Баъд onboarding (шиносоии бизнес ба AI) кушода мешавад.</p>
+  <img class="shot" src="screenshots/02-register.png" alt="Сабти ном" />
+  <p class="caption">Расм 2. Сабти номи соҳиби бизнес</p>
+
+  <h2>3. Панели сардор</h2>
+
+  <h3>3.1. Фармон додан</h3>
+  <p>
+    Саҳифаи марказӣ. Шумо як ҷумла менависед. AI вазифаҳо месозад ва ба барномаи коргарон мефиристад.
+    Тугмаҳо: сохтани вазифа, ирсол, follow-up (пурсидани пешрафт).
+  </p>
+  <ul>
+    <li>Шумо фармон медиҳед — як мақсад</li>
+    <li>AI таҳлил — ба вазифаҳо тақсим</li>
+    <li>Барномаи корманд — вазифа дар ҳисоби коргар пайдо мешавад</li>
+    <li>Follow-up — AI мепурсад ва натиҷаро месанҷад</li>
+  </ul>
+  <img class="shot" src="screenshots/03-commands.png" alt="Фармон додан" />
+  <p class="caption">Расм 3. Фармон додан ба AI Manager</p>
+
+  <h3>3.2. Коргарон</h3>
+  <p>
+    Рӯйхати даста. Ҳар коргар email ва парол мегирад (пешфарз: <code>Worker123!</code>).
+    Вазифаҳо ба барномаи ӯ мераванд. Нишондиҳандаҳои самаранокӣ ва сатҳ нишон дода мешаванд.
+  </p>
+  <img class="shot" src="screenshots/04-employees.png" alt="Коргарон" />
+  <p class="caption">Расм 4. Илова ва назорати коргарон</p>
+
+  <h3>3.3. Хулоса (Dashboard)</h3>
+  <p>KPI: коргарони фаъол, вазифаҳои иҷрошуда, вазифаҳои дер, самаранокӣ. Графикҳо, тавсияҳои AI ва пешрафти лоиҳаҳо.</p>
+  <img class="shot" src="screenshots/05-dashboard.png" alt="Хулоса" />
+  <p class="caption">Расм 5. Хулосаи рақамӣ ва графикҳо</p>
+
+  <h3>3.4. Лоиҳаҳо</h3>
+  <p>Ҳар фармон лоиҳа мешавад. Пешрафт, мӯҳлат, шумораи вазифаҳо ва ҳолати саломатӣ. AI метавонад лоиҳаро боз ба вазифаҳо тақсим кунад.</p>
+  <img class="shot" src="screenshots/06-projects.png" alt="Лоиҳаҳо" />
+  <p class="caption">Расм 6. Лоиҳаҳо ва пешрафт</p>
+
+  <h3>3.5. AI Manager</h3>
+  <p>
+    Маркази зеҳнӣ. Ҳолати ҷорӣ (вазифаҳои кушода, фармонҳо, бори коргарон),
+    таҳлили бизнес, нақшаи рӯзона, тавсияҳо ва ҷустуҷӯи вазифаҳои дер.
+  </p>
+  <img class="shot" src="screenshots/07-ai-manager.png" alt="AI Manager" />
+  <p class="caption">Расм 7. Маркази идоракунии AI</p>
+
+  <h3>3.6. Гузоришҳо</h3>
+  <p>Гузоришҳои самаранокӣ: рӯзона, ҳафтаина, моҳона, семоҳа, солона. Дар режими пурра мустақил AI ҳар ҳафта гузориш тайёр мекунад.</p>
+  <img class="shot" src="screenshots/08-reports.png" alt="Гузоришҳо" />
+  <p class="caption">Расм 8. Гузоришҳо</p>
+
+  <h3>3.7. Тақвим</h3>
+  <p>Мулоқотҳо, мӯҳлатҳо ва рӯйдодҳои даста дар як моҳ.</p>
+  <img class="shot" src="screenshots/09-calendar.png" alt="Тақвим" />
+  <p class="caption">Расм 9. Тақвими кор</p>
+
+  <h3>3.8. Танзимот</h3>
+  <p>Профили бизнес барои AI, соати кор, сатҳи мустақилияти AI (пурра мустақил ё танҳо маслиҳат). Telegram пайваст намешавад.</p>
+  <img class="shot" src="screenshots/10-settings.png" alt="Танзимот" />
+  <p class="caption">Расм 10. Танзимоти ширкат ва AI</p>
+
+  <h2>4. Барномаи коргар («Кори ман»)</h2>
+  <p>
+    Коргар бо email/парол ворид мешавад ва танҳо саҳифаи худро мебинад.
+    Ду ҳисоб: <strong>иҷронашуда</strong> ва <strong>иҷрошуда</strong>.
+    Барои ҳар вазифа гузориш менависад; AI месанҷад, ки кор анҷом ёфтааст ё не.
+  </p>
+  <img class="shot" src="screenshots/11-work.png" alt="Барномаи коргар" />
+  <p class="caption">Расм 11. Барномаи коргар — http://localhost:4201/work</p>
+
+  <h2>5. Рӯйхати функсияҳо</h2>
+  <table>
+    <tr><th>Функсия</th><th>Кӣ истифода мекунад</th><th>Чӣ медиҳад</th></tr>
+    <tr><td>Сабти ном / воридшавӣ / JWT</td><td>Ҳама</td><td>Ҳисоби бехатар, 3 забон</td></tr>
+    <tr><td>Onboarding</td><td>Сардор</td><td>AI бизнес, маҳсулот ва равандро меомӯзад</td></tr>
+    <tr><td>Фармон додан</td><td>Сардор</td><td>Як фармон → вазифаҳои тайёр</td></tr>
+    <tr><td>Ирсол ва follow-up</td><td>Сардор + AI</td><td>Вазифа ба барномаи коргар, назорат</td></tr>
+    <tr><td>Коргарон</td><td>Сардор</td><td>Илова бо email/парол, нишондиҳандаҳо</td></tr>
+    <tr><td>Кори ман</td><td>Коргар</td><td>Дидани вазифа, гузориш, иҷрошуда/нашуда</td></tr>
+    <tr><td>Хулоса</td><td>Сардор</td><td>KPI, график, тавсия</td></tr>
+    <tr><td>Лоиҳаҳо</td><td>Сардор</td><td>Пешрафт ва вазифаҳои лоиҳа</td></tr>
+    <tr><td>AI Manager</td><td>Сардор</td><td>Таҳлил, нақшаи рӯз, ҳолати ҷорӣ</td></tr>
+    <tr><td>Гузоришҳо / тақвим</td><td>Сардор</td><td>Ҳисобот ва рӯйдодҳо</td></tr>
+    <tr><td>Танзимот</td><td>Сардор</td><td>Контекст, соати кор, мустақилияти AI</td></tr>
+    <tr><td>Огоҳиҳои дохилӣ</td><td>Коргар</td><td>Вазифа ва ёдрасӣ дар барнома</td></tr>
+  </table>
+
+  <h2>6. Технология</h2>
+  <table>
+    <tr><th>Қисм</th><th>Технология</th></tr>
+    <tr><td>Frontend</td><td>Angular 21, TypeScript, Tailwind CSS</td></tr>
+    <tr><td>Backend</td><td>NestJS, Prisma, JWT</td></tr>
+    <tr><td>AI</td><td>Groq / OpenAI (LLM)</td></tr>
+    <tr><td>Real-time</td><td>WebSocket (Socket.io)</td></tr>
+    <tr><td>Ирсоли вазифа</td><td>Барномаи коргар (in-app), на Telegram</td></tr>
+  </table>
+
+  <h2>7. Чӣ тавр кушодан</h2>
+  <ul>
+    <li>Backend: <code>http://127.0.0.1:3000</code> — <code>npm run start:dev</code> дар ҷузвдони backend</li>
+    <li>Frontend: <code>http://localhost:4201</code> — <code>ng serve --port 4201</code> дар ҷузвдони frontend</li>
+    <li>Коргари намуна: email-и коргар + пароли <code>Worker123!</code> → саҳифаи /work</li>
+  </ul>
+
+  <footer>
+    Hujjat аз скриншотҳои зиндаи барнома (октябри 2026) тайёр шуд. Buzines / AI Business Manager.
+  </footer>
+</body>
+</html>

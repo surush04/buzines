@@ -181,7 +181,7 @@ export class AiEngineService {
 
     let newStatus: TaskStatus | undefined;
     if (evaluation.isComplete) {
-      newStatus = TaskStatus.COMPLETED;
+      newStatus = TaskStatus.COMPLETED_PENDING_VERIFICATION;
     } else if (evaluation.responseType === TaskResponseType.BLOCKED) {
       newStatus = TaskStatus.BLOCKED;
     } else if (
@@ -228,7 +228,7 @@ export class AiEngineService {
         data: {
           employeeId,
           direction: 'INBOUND',
-          channel: NotificationChannel.TELEGRAM,
+          channel: NotificationChannel.IN_APP,
           content: message,
           isFromAi: false,
         },
@@ -238,7 +238,7 @@ export class AiEngineService {
       data: {
         employeeId,
         direction: 'OUTBOUND',
-        channel: NotificationChannel.TELEGRAM,
+        channel: NotificationChannel.IN_APP,
         content: reply,
         isFromAi: true,
       },
@@ -350,7 +350,7 @@ export class AiEngineService {
       data: {
         employeeId,
         direction: 'INBOUND',
-        channel: NotificationChannel.TELEGRAM,
+        channel: NotificationChannel.IN_APP,
         content: inbound,
         isFromAi: false,
       },
@@ -359,7 +359,7 @@ export class AiEngineService {
       data: {
         employeeId,
         direction: 'OUTBOUND',
-        channel: NotificationChannel.TELEGRAM,
+        channel: NotificationChannel.IN_APP,
         content: outbound,
         isFromAi: true,
       },
@@ -963,29 +963,34 @@ Categories: FRONTEND, BACKEND, DESIGN, DATABASE, DEVOPS, TESTING, DOCUMENTATION,
       return this.businessContext.getNaturalReplyFallback(lang, name, msg);
     }
 
-    const systemPrefix = await this.businessContext.getSystemPromptPrefix(companyId);
-    const res = await this.llm.chat(
-      {
-        messages: [
-          {
-            role: 'system',
-            content:
-              systemPrefix +
-              this.businessContext.getEvaluateMessageRules(lang) +
-              ' Reply with plain text only — 1-3 sentences.',
-          },
-          { role: 'user', content: JSON.stringify(context) },
-        ],
-        max_tokens: 200,
-      },
-      true,
-    );
+    try {
+      const systemPrefix = await this.businessContext.getSystemPromptPrefix(companyId);
+      const res = await this.llm.chat(
+        {
+          messages: [
+            {
+              role: 'system',
+              content:
+                systemPrefix +
+                this.businessContext.getEvaluateMessageRules(lang) +
+                ' Reply with plain text only — 1-3 sentences.',
+            },
+            { role: 'user', content: JSON.stringify(context) },
+          ],
+          max_tokens: 200,
+        },
+        true,
+      );
 
-    let reply = res.choices[0]?.message?.content?.trim() ?? '';
-    reply = this.enforceLanguageSync(lang, reply);
-    return (
-      this.sanitizeReply(reply) || this.businessContext.getNaturalReplyFallback(lang, name, msg)
-    );
+      let reply = res.choices[0]?.message?.content?.trim() ?? '';
+      reply = this.enforceLanguageSync(lang, reply);
+      return (
+        this.sanitizeReply(reply) || this.businessContext.getNaturalReplyFallback(lang, name, msg)
+      );
+    } catch (err) {
+      this.logger.warn('Natural manager reply failed, using fallback', err);
+      return this.businessContext.getNaturalReplyFallback(lang, name, msg);
+    }
   }
 
   private looksLikeTajik(text: string): boolean {
@@ -1162,12 +1167,12 @@ Categories: FRONTEND, BACKEND, DESIGN, DATABASE, DEVOPS, TESTING, DOCUMENTATION,
         orderBy: { createdAt: 'desc' },
         take: 15,
         include: {
-          employee: { select: { firstName: true, telegramUsername: true } },
+          employee: { select: { firstName: true } },
           task: { select: { title: true } },
         },
       }),
       this.prisma.message.findMany({
-        where: { employee: { companyId }, channel: NotificationChannel.TELEGRAM },
+        where: { employee: { companyId }, channel: NotificationChannel.IN_APP },
         orderBy: { createdAt: 'desc' },
         take: 10,
         include: { employee: { select: { firstName: true } } },
@@ -1176,7 +1181,7 @@ Categories: FRONTEND, BACKEND, DESIGN, DATABASE, DEVOPS, TESTING, DOCUMENTATION,
 
     const fromResponses = responses.map((r) => ({
       icon: r.responseType === 'COMPLETED' ? '✅' : r.responseType === 'BLOCKED' ? '⚠️' : '💬',
-      message: `@${r.employee.telegramUsername ?? r.employee.firstName} — ${r.task.title}: ${r.message ?? r.responseType}`,
+      message: `${r.employee.firstName} — ${r.task.title}: ${r.message ?? r.responseType}`,
       time: r.createdAt.toISOString(),
     }));
 

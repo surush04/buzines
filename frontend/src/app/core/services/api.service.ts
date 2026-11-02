@@ -88,10 +88,10 @@ export class ApiService {
   }
 
   // Admin Directives — owner gives order, AI executes
-  createDirective(companyId: string, instruction: string, sendTelegram = true) {
+  createDirective(companyId: string, instruction: string, autoDispatch = true) {
     return this.http.post<any>(`${this.base}/directives/companies/${companyId}`, {
       instruction,
-      sendTelegram,
+      autoDispatch,
     });
   }
 
@@ -133,29 +133,126 @@ export class ApiService {
     return this.http.post<any>(`${this.base}/ai/companies/${companyId}/business-analysis`, {});
   }
 
-  // Telegram
-  getTelegramUserStatus(companyId: string) {
-    return this.http.get<any>(`${this.base}/telegram/companies/${companyId}/user/status`);
+  getCeoBoard(companyId: string) {
+    return this.http.get<any>(`${this.base}/ceo/companies/${companyId}`);
   }
 
-  getTelegramApiCredentials(companyId: string) {
-    return this.http.get<{ configured: boolean; apiId: number | null; apiHash: string; source: string }>(
-      `${this.base}/telegram/companies/${companyId}/api-credentials`,
-    );
+  diagnoseCeo(companyId: string) {
+    return this.http.post<any>(`${this.base}/ceo/companies/${companyId}/diagnose`, {});
   }
 
-  saveTelegramApiCredentials(companyId: string, apiId: number, apiHash: string) {
-    return this.http.post<{ configured: boolean; apiId: number | null; apiHash: string; source: string }>(
-      `${this.base}/telegram/companies/${companyId}/api-credentials`,
-      { apiId, apiHash },
-    );
+  createCeoGoal(companyId: string, data: { title: string; description?: string; targetValue?: number; unit?: string }) {
+    return this.http.post<any>(`${this.base}/ceo/companies/${companyId}/goals`, data);
   }
 
-  sendTelegramUserCode(companyId: string, phone: string) {
-    return this.http.post<any>(`${this.base}/telegram/companies/${companyId}/user/send-code`, { phone });
+  createCeoKpi(companyId: string, data: { employeeId: string; name: string; planValue?: number; factValue?: number; unit?: string }) {
+    return this.http.post<any>(`${this.base}/ceo/companies/${companyId}/kpis`, data);
   }
 
-  confirmTelegramUser(companyId: string, code: string, password?: string) {
-    return this.http.post<any>(`${this.base}/telegram/companies/${companyId}/user/confirm`, { code, password });
+  decideCeo(companyId: string, decisionId: string, approve: boolean) {
+    return this.http.post<any>(`${this.base}/ceo/companies/${companyId}/decisions/${decisionId}`, { approve });
+  }
+
+  verifyCeo(companyId: string, decisionId: string, actualEffect: string) {
+    return this.http.post<any>(`${this.base}/ceo/companies/${companyId}/decisions/${decisionId}/verify`, {
+      actualEffect,
+    });
+  }
+
+  getMyWork() {
+    return this.http.get<any>(`${this.base}/work/me`);
+  }
+
+  getMyTasks() {
+    return this.http.get<{ open: any[]; done: any[] }>(`${this.base}/work/tasks`);
+  }
+
+  respondMyTask(
+    taskId: string,
+    message: string,
+    extras?: { evidenceLinks?: string[]; measurableOutcome?: string; claimedValue?: number },
+  ) {
+    return this.http.post<any>(`${this.base}/work/tasks/${taskId}/respond`, { message, ...extras });
+  }
+
+  getControlCenter(companyId: string) {
+    return this.http.get<any>(`${this.base}/ops/companies/${companyId}/control-center`);
+  }
+
+  pauseAi(companyId: string, paused: boolean, reason?: string) {
+    return this.http.post<any>(`${this.base}/ops/companies/${companyId}/pause`, { paused, reason });
+  }
+
+  getVerificationReports(companyId: string, status?: string) {
+    const q = status ? `?status=${status}` : '';
+    return this.http.get<any[]>(`${this.base}/verification/companies/${companyId}/reports${q}`);
+  }
+
+  reviewCompletion(companyId: string, reportId: string, approve: boolean, reason?: string) {
+    return this.http.post<any>(`${this.base}/verification/companies/${companyId}/reports/${reportId}/review`, {
+      approve,
+      reason,
+    });
+  }
+
+  getWorkflows(companyId: string) {
+    return this.http.get<any[]>(`${this.base}/workflows/companies/${companyId}`);
+  }
+
+  createWorkflow(companyId: string, data: any) {
+    return this.http.post<any>(`${this.base}/workflows/companies/${companyId}`, data);
+  }
+
+  updateWorkflow(companyId: string, id: string, data: any) {
+    return this.http.put<any>(`${this.base}/workflows/companies/${companyId}/${id}`, data);
+  }
+
+  deleteWorkflow(companyId: string, id: string) {
+    return this.http.delete<any>(`${this.base}/workflows/companies/${companyId}/${id}`);
+  }
+
+  getMemories(companyId: string, q?: string) {
+    const qs = q ? `?q=${encodeURIComponent(q)}` : '';
+    return this.http.get<any[]>(`${this.base}/memory/companies/${companyId}${qs}`);
+  }
+
+  createMemory(companyId: string, data: any) {
+    return this.http.post<any>(`${this.base}/memory/companies/${companyId}`, data);
+  }
+
+  deleteMemory(companyId: string, id: string) {
+    return this.http.delete<any>(`${this.base}/memory/companies/${companyId}/${id}`);
+  }
+
+  getWorkload(companyId: string) {
+    return this.http.get<any>(`${this.base}/resources/companies/${companyId}`);
+  }
+
+  saveCapacity(companyId: string, employeeId: string, data: any) {
+    return this.http.put<any>(`${this.base}/resources/companies/${companyId}/employees/${employeeId}/capacity`, data);
+  }
+
+  getScenarios(companyId: string) {
+    return this.http.get<any[]>(`${this.base}/simulator/companies/${companyId}`);
+  }
+
+  runScenario(companyId: string, data: any) {
+    return this.http.post<any>(`${this.base}/simulator/companies/${companyId}`, data);
+  }
+
+  getIntegrations(companyId: string) {
+    return this.http.get<any[]>(`${this.base}/integrations/companies/${companyId}`);
+  }
+
+  connectIntegration(companyId: string, type: string) {
+    return this.http.post<any>(`${this.base}/integrations/companies/${companyId}/${type}/connect`, {});
+  }
+
+  disconnectIntegration(companyId: string, type: string) {
+    return this.http.post<any>(`${this.base}/integrations/companies/${companyId}/${type}/disconnect`, {});
+  }
+
+  getDecisionJournal(companyId: string) {
+    return this.http.get<any[]>(`${this.base}/ceo/companies/${companyId}/decisions`);
   }
 }

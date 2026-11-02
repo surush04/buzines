@@ -112,6 +112,7 @@ export class LayoutComponent implements OnInit {
       { path: '/reports', label: this.i18n.t('nav.reports'), icon: '📈' },
       { path: '/calendar', label: this.i18n.t('nav.calendar'), icon: '📅' },
       { path: '/settings', label: this.i18n.t('nav.settings'), icon: '⚙️' },
+      { path: '/os', label: this.i18n.t('nav.os'), icon: '🧠' },
     ];
   });
 

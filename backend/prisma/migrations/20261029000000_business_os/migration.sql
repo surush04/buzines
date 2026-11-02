@@ -1,0 +1,5 @@
+-- Business OS tables are applied via `prisma db push` on SQLite.
+-- This file documents the additive schema: completion_reports, verification_*,
+-- workflow_*, business_memories, employee_capacities, simulation_scenarios,
+-- audit_events, ai_operations, job_runs, idempotency_keys, plus extra columns
+-- on ai_settings, integrations, and ceo_decisions. Existing rows are preserved.

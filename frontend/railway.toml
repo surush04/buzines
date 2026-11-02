@@ -6,3 +6,4 @@ buildCommand = "npm ci && node scripts/patch-env.mjs && npm run build"
 startCommand = "sh start.sh"
 healthcheckPath = "/"
 restartPolicyType = "ON_FAILURE"
+healthcheckTimeout = 300

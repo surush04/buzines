@@ -13,10 +13,10 @@ class CreateDirectiveDto {
   @MinLength(3)
   instruction: string;
 
-  @ApiPropertyOptional({ description: 'Automatically send tasks via Telegram after creation', default: true })
+  @ApiPropertyOptional({ description: 'Automatically send tasks to the employee app after creation', default: true })
   @IsOptional()
   @IsBoolean()
-  sendTelegram?: boolean;
+  autoDispatch?: boolean;
 }
 
 @ApiTags('Admin Directives')
@@ -28,12 +28,12 @@ export class DirectiveController {
 
   @Post('companies/:companyId')
   @Roles(UserRole.COMPANY_OWNER, UserRole.MANAGER, UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Admin gives order — AI splits tasks and sends to employees via Telegram' })
+  @ApiOperation({ summary: 'Admin gives order — AI splits tasks and sends them to the employee app' })
   create(@Param('companyId') companyId: string, @Body() dto: CreateDirectiveDto) {
     return this.directiveService.createAndExecute(
       companyId,
       dto.instruction,
-      dto.sendTelegram !== false,
+      dto.autoDispatch !== false,
     );
   }
 

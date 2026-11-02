@@ -4,35 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
-
-function buildCorsOriginChecker(
-  frontendUrl: string,
-  extraOrigins: string[],
-): (origin: string) => boolean {
-  return (origin: string): boolean => {
-    const allowed = [
-      frontendUrl,
-      'http://localhost:4200',
-      'http://localhost:4201',
-      'http://127.0.0.1:4200',
-      'http://127.0.0.1:4201',
-      ...extraOrigins,
-    ];
-    if (allowed.includes(origin)) return true;
-
-    const patterns = [
-      /^https?:\/\/localhost(:\d+)?$/,
-      /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
-      /^https:\/\/[^/]+\.up\.railway\.app$/,
-      /^https:\/\/[^/]+\.railway\.app$/,
-      /^https:\/\/[^/]+\.onrender\.com$/,
-      /^https:\/\/[^/]+\.loca\.lt$/,
-      /^https:\/\/[^/]+\.trycloudflare\.com$/,
-      /^https:\/\/[^/]+\.vercel\.app$/,
-    ];
-    return patterns.some((pattern) => pattern.test(origin));
-  };
-}
+import { buildCorsOriginChecker, parseExtraOrigins } from './config/cors-origins';
 
 function corsMiddleware(isAllowedOrigin: (origin: string) => boolean) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -66,10 +38,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   const frontendUrl = configService.get<string>('frontendUrl') ?? 'http://localhost:4201';
-  const extraOrigins = (process.env.CORS_ORIGINS ?? '')
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
+  const extraOrigins = parseExtraOrigins(process.env.CORS_ORIGINS);
   const isAllowedOrigin = buildCorsOriginChecker(frontendUrl, extraOrigins);
 
   app.use(corsMiddleware(isAllowedOrigin));

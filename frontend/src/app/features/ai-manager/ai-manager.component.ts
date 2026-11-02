@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { CompanyContextService } from '../../core/services/company-context.service';
 import { TranslationService } from '../../core/i18n/translation.service';
@@ -7,7 +8,7 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 @Component({
   selector: 'app-ai-manager',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [FormsModule, TranslatePipe],
   template: `
     <div class="animate-fade-in space-y-6">
       <div class="glass-card p-8 text-center">
@@ -16,6 +17,113 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
         </div>
         <h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ 'aiManager.title' | t }}</h2>
         <p class="mx-auto mt-2 max-w-lg text-sm text-slate-500">{{ 'aiManager.subtitle' | t }}</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div class="glass-card p-4">
+          <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ briefing()?.yesterdayCompleted ?? 0 }}</p>
+          <p class="text-xs text-slate-500">{{ 'ceo.yesterdayDone' | t }}</p>
+        </div>
+        <div class="glass-card p-4">
+          <p class="text-2xl font-bold text-amber-600">{{ briefing()?.overdue ?? 0 }}</p>
+          <p class="text-xs text-slate-500">{{ 'ceo.overdue' | t }}</p>
+        </div>
+        <div class="glass-card p-4">
+          <p class="text-2xl font-bold text-primary-600">{{ briefing()?.openIssues ?? 0 }}</p>
+          <p class="text-xs text-slate-500">{{ 'ceo.openIssues' | t }}</p>
+        </div>
+        <div class="glass-card p-4">
+          <p class="text-2xl font-bold text-violet-600">{{ briefing()?.pendingDecisions ?? 0 }}</p>
+          <p class="text-xs text-slate-500">{{ 'ceo.pendingDecisions' | t }}</p>
+        </div>
+      </div>
+
+      @if (briefing()?.priorities?.length) {
+        <div class="glass-card p-4">
+          <h3 class="mb-2 text-sm font-semibold">{{ 'ceo.todayPriorities' | t }}</h3>
+          <ul class="list-inside list-disc text-sm text-slate-600 dark:text-slate-400">
+            @for (p of briefing()!.priorities; track p) {
+              <li>{{ p }}</li>
+            }
+          </ul>
+        </div>
+      }
+
+      <div class="flex flex-wrap gap-2">
+        <button class="btn-primary" (click)="diagnose()" [disabled]="loading()">{{ 'ceo.diagnose' | t }}</button>
+      </div>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <div class="glass-card p-5 space-y-3">
+          <h3 class="font-semibold">{{ 'ceo.goals' | t }}</h3>
+          <input class="input-field" [(ngModel)]="goalTitle" [placeholder]="'ceo.goalPlaceholder' | t" />
+          <button class="btn-secondary !text-xs" (click)="addGoal()" [disabled]="!goalTitle.trim()">{{ 'ceo.addGoal' | t }}</button>
+          @for (g of goals(); track g.id) {
+            <p class="text-sm text-slate-700 dark:text-slate-300">• {{ g.title }}</p>
+          } @empty {
+            <p class="text-xs text-slate-500">{{ 'ceo.noGoals' | t }}</p>
+          }
+        </div>
+        <div class="glass-card p-5 space-y-3">
+          <h3 class="font-semibold">{{ 'ceo.kpis' | t }}</h3>
+          <select class="input-field" [(ngModel)]="kpiEmployeeId">
+            <option value="">{{ 'ceo.selectEmployee' | t }}</option>
+            @for (e of employees(); track e.id) {
+              <option [value]="e.id">{{ e.firstName }} {{ e.lastName }} — {{ e.role }}</option>
+            }
+          </select>
+          <input class="input-field" [(ngModel)]="kpiName" [placeholder]="'ceo.kpiName' | t" />
+          <div class="grid grid-cols-2 gap-2">
+            <input class="input-field" type="number" [(ngModel)]="kpiPlan" [placeholder]="'ceo.plan' | t" />
+            <input class="input-field" type="number" [(ngModel)]="kpiFact" [placeholder]="'ceo.fact' | t" />
+          </div>
+          <button class="btn-secondary !text-xs" (click)="addKpi()" [disabled]="!kpiEmployeeId || !kpiName.trim()">{{ 'ceo.addKpi' | t }}</button>
+          @for (k of kpis(); track k.id) {
+            <p class="text-sm text-slate-700 dark:text-slate-300">
+              {{ k.employee?.firstName }} — {{ k.name }}:
+              {{ k.planValue ?? '—' }} / {{ k.factValue ?? ('ceo.noData' | t) }}
+            </p>
+          }
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <h3 class="font-semibold">{{ 'ceo.issues' | t }}</h3>
+        @for (issue of issues(); track issue.id) {
+          <div class="glass-card p-5 space-y-2">
+            <div class="flex items-start justify-between gap-3">
+              <p class="font-medium text-slate-900 dark:text-white">{{ issue.title }}</p>
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800">{{ issue.urgency }} · {{ issue.status }}</span>
+            </div>
+            <p class="text-sm text-slate-600 dark:text-slate-400">{{ issue.evidence }}</p>
+            @if (issue.rootCause) {
+              <p class="text-xs text-slate-500">{{ 'ceo.cause' | t }}: {{ issue.rootCause }}</p>
+            }
+            @for (d of issue.decisions; track d.id) {
+              <div class="rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800/50">
+                <p>{{ d.proposal }}</p>
+                @if (d.expectedEffect) {
+                  <p class="mt-1 text-xs text-slate-500">{{ 'ceo.expected' | t }}: {{ d.expectedEffect }}</p>
+                }
+                <p class="mt-1 text-xs">{{ d.status }}</p>
+                @if (d.status === 'PROPOSED') {
+                  <div class="mt-2 flex gap-2">
+                    <button class="btn-primary !text-xs" (click)="decide(d.id, true)">{{ 'ceo.approve' | t }}</button>
+                    <button class="btn-secondary !text-xs" (click)="decide(d.id, false)">{{ 'ceo.reject' | t }}</button>
+                  </div>
+                }
+                @if (d.status === 'APPROVED' || d.status === 'EXECUTED') {
+                  <div class="mt-2 flex gap-2">
+                    <input class="input-field" [(ngModel)]="verifyText[d.id]" [placeholder]="'ceo.verifyPlaceholder' | t" />
+                    <button class="btn-secondary !text-xs" (click)="verify(d.id)">{{ 'ceo.verify' | t }}</button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        } @empty {
+          <p class="text-sm text-slate-500">{{ 'ceo.noIssues' | t }}</p>
+        }
       </div>
 
       @if (businessAnalysis()) {
@@ -141,14 +249,25 @@ export class AiManagerComponent implements OnInit {
   opsSnapshot = signal('');
   businessAnalysis = signal<any | null>(null);
   companyId = this.companyContext.companyId;
+  briefing = signal<any>(null);
+  goals = signal<any[]>([]);
+  kpis = signal<any[]>([]);
+  issues = signal<any[]>([]);
+  employees = signal<any[]>([]);
+  goalTitle = '';
+  kpiEmployeeId = '';
+  kpiName = '';
+  kpiPlan: number | null = null;
+  kpiFact: number | null = null;
+  verifyText: Record<string, string> = {};
 
   workflow = computed(() => {
     this.i18n.lang();
     return [
-      { step: '01', title: this.i18n.t('aiManager.workflow.breakdown'), description: this.i18n.t('aiManager.workflow.breakdownDesc') },
-      { step: '02', title: this.i18n.t('aiManager.workflow.assign'), description: this.i18n.t('aiManager.workflow.assignDesc') },
-      { step: '03', title: this.i18n.t('aiManager.workflow.daily'), description: this.i18n.t('aiManager.workflow.dailyDesc') },
-      { step: '04', title: this.i18n.t('aiManager.workflow.followUp'), description: this.i18n.t('aiManager.workflow.followUpDesc') },
+      { step: '01', title: this.i18n.t('ceo.cycle.diagnose'), description: this.i18n.t('ceo.cycle.diagnoseDesc') },
+      { step: '02', title: this.i18n.t('ceo.cycle.decide'), description: this.i18n.t('ceo.cycle.decideDesc') },
+      { step: '03', title: this.i18n.t('ceo.cycle.act'), description: this.i18n.t('ceo.cycle.actDesc') },
+      { step: '04', title: this.i18n.t('ceo.cycle.verify'), description: this.i18n.t('ceo.cycle.verifyDesc') },
     ];
   });
 
@@ -188,7 +307,80 @@ export class AiManagerComponent implements OnInit {
         this.loadActivity(id);
         this.loadStatus(id);
         this.loadBusinessAnalysis(id);
+        this.loadCeo(id);
+        this.api.getEmployees(id).subscribe({ next: (e) => this.employees.set(e) });
       },
+    });
+  }
+
+  loadCeo(companyId: string) {
+    this.api.getCeoBoard(companyId).subscribe({
+      next: (b) => {
+        this.goals.set(b.goals ?? []);
+        this.kpis.set(b.kpis ?? []);
+        this.issues.set(b.issues ?? []);
+        this.briefing.set(b.briefing ?? null);
+      },
+    });
+  }
+
+  diagnose() {
+    const id = this.companyId();
+    if (!id) return;
+    this.loading.set(true);
+    this.api.diagnoseCeo(id).subscribe({
+      next: (r) => {
+        this.loading.set(false);
+        this.addLog('🎯', this.i18n.t('ceo.diagnosed', { count: r.created ?? 0 }), new Date().toLocaleTimeString());
+        this.loadCeo(id);
+      },
+      error: () => this.loading.set(false),
+    });
+  }
+
+  addGoal() {
+    const id = this.companyId();
+    if (!id || !this.goalTitle.trim()) return;
+    this.api.createCeoGoal(id, { title: this.goalTitle.trim() }).subscribe({
+      next: () => {
+        this.goalTitle = '';
+        this.loadCeo(id);
+      },
+    });
+  }
+
+  addKpi() {
+    const id = this.companyId();
+    if (!id || !this.kpiEmployeeId || !this.kpiName.trim()) return;
+    this.api.createCeoKpi(id, {
+      employeeId: this.kpiEmployeeId,
+      name: this.kpiName.trim(),
+      planValue: this.kpiPlan ?? undefined,
+      factValue: this.kpiFact ?? undefined,
+    }).subscribe({
+      next: () => {
+        this.kpiName = '';
+        this.kpiPlan = null;
+        this.kpiFact = null;
+        this.loadCeo(id);
+      },
+    });
+  }
+
+  decide(decisionId: string, approve: boolean) {
+    const id = this.companyId();
+    if (!id) return;
+    this.api.decideCeo(id, decisionId, approve).subscribe({
+      next: () => this.loadCeo(id),
+    });
+  }
+
+  verify(decisionId: string) {
+    const id = this.companyId();
+    const effect = (this.verifyText[decisionId] ?? '').trim();
+    if (!id || !effect) return;
+    this.api.verifyCeo(id, decisionId, effect).subscribe({
+      next: () => this.loadCeo(id),
     });
   }
 

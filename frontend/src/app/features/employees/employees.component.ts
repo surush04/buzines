@@ -5,19 +5,20 @@ import { ApiService } from '../../core/services/api.service';
 import { CompanyContextService } from '../../core/services/company-context.service';
 import { TranslationService } from '../../core/i18n/translation.service';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
+import { PasswordInputComponent } from '../../shared/components/password-input/password-input.component';
 
 @Component({
   selector: 'app-employees',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, TranslatePipe],
+  imports: [FormsModule, DecimalPipe, TranslatePipe, PasswordInputComponent],
   template: `
     <div class="animate-fade-in space-y-6">
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ 'employees.title' | t }}</h2>
           <p class="text-sm text-slate-500">{{ 'employees.subtitle' | t }}</p>
-          <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">
-            {{ 'employees.telegramHint' | t }}
+          <p class="mt-1 text-xs text-slate-500">
+            {{ 'employees.appHint' | t }}
           </p>
         </div>
         <button class="btn-primary" (click)="showForm.set(true)" [disabled]="!companyId()">{{ 'employees.add' | t }}</button>
@@ -25,6 +26,11 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 
       @if (error()) {
         <div class="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{{ error() }}</div>
+      }
+      @if (lastLogin()) {
+        <div class="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+          {{ 'employees.loginCreated' | t }}: {{ lastLogin()!.email }} / {{ lastLogin()!.password }}
+        </div>
       }
 
       @if (showForm()) {
@@ -36,7 +42,7 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
             <input [(ngModel)]="form.email" name="email" type="email" class="input-field" [placeholder]="'employees.placeholder.email' | t" required />
             <input [(ngModel)]="form.role" name="role" class="input-field" [placeholder]="'employees.placeholder.role' | t" required />
             <input [(ngModel)]="form.phone" name="phone" class="input-field" [placeholder]="'employees.placeholder.phone' | t" />
-            <input [(ngModel)]="form.telegramUsername" name="telegram" class="input-field" [placeholder]="'employees.placeholder.telegram' | t" required />
+            <app-password-input [(value)]="form.password" name="password" [placeholder]="'employees.placeholder.password' | t" />
             <input [(ngModel)]="form.skills" name="skills" class="input-field md:col-span-2" [placeholder]="'employees.placeholder.skills' | t" />
             <div class="flex gap-3 md:col-span-2">
               <button type="submit" class="btn-primary" [disabled]="saving()">{{ 'employees.save' | t }}</button>
@@ -58,23 +64,25 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
                 <p class="text-sm text-primary-600 dark:text-primary-400">{{ emp.role }}</p>
                 <p class="text-xs text-slate-500">{{ emp.department?.name ?? ('employees.noDepartment' | t) }}</p>
               </div>
-              <span class="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                [class]="emp.telegramUsername ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'">
-                {{ emp.telegramUsername ? '✈️ @' + emp.telegramUsername : ('employees.noTelegram' | t) }}
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {{ emp.email }}
               </span>
             </div>
-
-            @if (emp.telegramUsername) {
-              <div class="mt-4 rounded-xl border border-primary-200 bg-primary-50/50 p-3 dark:border-primary-800 dark:bg-primary-900/20">
-                <p class="text-xs text-slate-500">{{ 'employees.tasksGoTo' | t }}</p>
-                <p class="font-mono text-sm font-bold text-primary-700">&#64;{{ emp.telegramUsername }}</p>
-              </div>
-            }
 
             @if (emp.skills?.length) {
               <div class="mt-4 flex flex-wrap gap-1.5">
                 @for (skill of emp.skills; track skill.name) {
                   <span class="rounded-lg bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300">{{ skill.name }}</span>
+                }
+              </div>
+            }
+
+            @if (emp.kpis?.length) {
+              <div class="mt-3 space-y-1 border-t border-slate-200/60 pt-3 dark:border-slate-700">
+                @for (k of emp.kpis; track k.id) {
+                  <p class="text-xs text-slate-600 dark:text-slate-400">
+                    {{ k.name }}: {{ k.planValue ?? '—' }} / {{ k.factValue ?? ('ceo.noData' | t) }}
+                  </p>
                 }
               </div>
             }
@@ -122,9 +130,10 @@ export class EmployeesComponent implements OnInit {
     email: '',
     role: '',
     phone: '',
-    telegramUsername: '',
+    password: '',
     skills: '',
   };
+  lastLogin = signal<{ email: string; password: string } | null>(null);
 
   ngOnInit() {
     this.companyContext.ensureCompany().subscribe({
@@ -148,21 +157,29 @@ export class EmployeesComponent implements OnInit {
       this.error.set(this.i18n.t('employees.error.noCompany'));
       return;
     }
-    if (!this.form.telegramUsername.trim()) {
-      this.error.set(this.i18n.t('employees.error.telegramRequired'));
-      return;
-    }
-
     this.saving.set(true);
     this.error.set('');
+    this.lastLogin.set(null);
 
     const skills = this.form.skills.split(',').map((s) => s.trim()).filter(Boolean);
+    const payload = {
+      firstName: this.form.firstName,
+      lastName: this.form.lastName,
+      email: this.form.email,
+      role: this.form.role,
+      phone: this.form.phone || undefined,
+      password: this.form.password || undefined,
+      skills,
+    };
 
-    this.api.createEmployee(id, { ...this.form, skills }).subscribe({
-      next: () => {
+    this.api.createEmployee(id, payload).subscribe({
+      next: (created) => {
         this.saving.set(false);
         this.showForm.set(false);
-        this.form = { firstName: '', lastName: '', email: '', role: '', phone: '', telegramUsername: '', skills: '' };
+        this.form = { firstName: '', lastName: '', email: '', role: '', phone: '', password: '', skills: '' };
+        if (created?.loginEmail) {
+          this.lastLogin.set({ email: created.loginEmail, password: created.loginPassword });
+        }
         this.loadEmployees();
       },
       error: (err) => {

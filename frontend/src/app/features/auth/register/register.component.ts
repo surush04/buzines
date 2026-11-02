@@ -6,10 +6,12 @@ import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../shared/pipes/translate.pipe';
 import { LanguageSwitcherComponent } from '../../../shared/components/language-switcher/language-switcher.component';
 
+import { PasswordInputComponent } from '../../../shared/components/password-input/password-input.component';
+
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslatePipe, LanguageSwitcherComponent],
+  imports: [FormsModule, RouterLink, TranslatePipe, LanguageSwitcherComponent, PasswordInputComponent],
   template: `
     <div class="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-primary-950 to-slate-900 p-4">
       <div class="absolute right-4 top-4 z-10">
@@ -44,7 +46,13 @@ import { LanguageSwitcherComponent } from '../../../shared/components/language-s
             </div>
             <div>
               <label class="mb-1.5 block text-sm font-medium text-slate-300">{{ 'auth.password' | t }}</label>
-              <input type="password" [(ngModel)]="password" name="password" class="input-field !bg-white/5 !border-white/10 !text-white" minlength="8" required />
+              <app-password-input
+                [(value)]="password"
+                name="password"
+                [minlength]="8"
+                [required]="true"
+                extraClass="!bg-white/5 !border-white/10 !text-white"
+              />
             </div>
             <button type="submit" class="btn-primary w-full" [disabled]="loading()">
               {{ loading() ? ('auth.registering' | t) : ('auth.register' | t) }}
