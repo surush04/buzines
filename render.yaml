@@ -12,6 +12,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: free
+    region: oregon
     healthCheckPath: /api/v1/health
     buildFilter:
       paths:
@@ -20,7 +21,9 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: file:./prod.db
+        fromDatabase:
+          name: buzines-db
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
@@ -51,3 +54,11 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+
+databases:
+  - name: buzines-db
+    databaseName: buzines
+    user: buzines
+    plan: free
+    region: oregon
+    postgresMajorVersion: "16"

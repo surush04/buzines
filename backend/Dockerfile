@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY prisma ./prisma
-RUN npx prisma generate
+RUN DATABASE_URL="postgresql://prisma:generate@localhost:5432/prisma?schema=public" npx prisma generate
 COPY . .
 RUN npm run build
 
@@ -13,7 +13,7 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY prisma ./prisma
-RUN npx prisma generate
+RUN DATABASE_URL="postgresql://prisma:generate@localhost:5432/prisma?schema=public" npx prisma generate
 COPY --from=builder /app/dist ./dist
 COPY start.sh ./start.sh
 RUN chmod +x ./start.sh

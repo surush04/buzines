@@ -1,197 +1,69 @@
-# Public access: Vercel frontend + NestJS on this PC + Cloudflare Tunnel
+# Deployment
 
-Friends open the **Vercel** site in a browser. The site calls the **API on your Windows computer**, which Cloudflare Tunnel publishes as HTTPS. SQLite stays on this PC (`backend/prisma/dev.db`). Nothing is deployed to Cloudflare or Vercel until **you** log in and click deploy.
+## Render test deployment
 
-This document does not invent a public URL. You will copy the hostname that Cloudflare prints.
+The root `render.yaml` defines the Angular static site, NestJS API, and PostgreSQL database as one Render Blueprint.
 
-## Architecture
+1. Push the repository to GitHub and connect it in Render with **New → Blueprint**.
+2. Select the repository root so Render detects `render.yaml`.
+3. Set `GROQ_API_KEY` when prompted, or add it later under the API service's environment variables. Without an AI provider key, AI-generated features will not work.
+4. Wait for the database, API health check, and static site deploys to finish. Use the URLs shown in Render; the Blueprint defaults to `https://buzines-web.onrender.com` and `https://buzines-api.onrender.com`.
+5. To copy the current local SQLite account and company, follow the transfer steps below after Render creates the database.
 
-```
-Friend's browser  →  https://YOUR_VERCEL_APP
-                         │  REST + Socket.IO
-                         ▼
-                  Cloudflare Tunnel (HTTPS / WSS)
-                         │
-                         ▼
-              NestJS on this PC  :3000
-              SQLite  backend/prisma/dev.db
-              Groq key  only in backend/.env
-```
+This Blueprint intentionally uses Render's free plans for testing. Free web services can spin down while idle, and free PostgreSQL databases expire after 30 days. After expiration, the database is inaccessible; after the grace period Render deletes it. Upgrade the database before that deadline if the data must be retained. Do not use this free configuration for production business data.
 
-Your PC must stay on, NestJS must stay running, and the tunnel process must stay running. If any of those stop, the public site cannot reach the API.
+### Transfer local SQLite data
 
-## 1. Install cloudflared (Windows)
+The migration utility copies users, companies, company settings, AI settings, and job history into an empty PostgreSQL database. Refresh tokens are deliberately not copied, so users must sign in again. It stops rather than silently skipping populated tables it does not support.
 
-In an elevated or normal PowerShell:
+1. Back up `backend/prisma/dev.db` before transferring it:
 
-```powershell
-winget install --id Cloudflare.cloudflared
-```
+   ```powershell
+   New-Item -ItemType Directory -Force .\backups | Out-Null
+   Copy-Item .\backend\prisma\dev.db (Join-Path .\backups ("dev-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".db"))
+   ```
+2. In Render, copy the PostgreSQL **External Database URL**. Do not commit it or paste it into source files.
+3. In PowerShell, from the repository root, set the source and target URLs for this terminal only:
 
-Close and reopen the terminal, then:
+   ```powershell
+   $sqliteFile = (Resolve-Path .\backend\prisma\dev.db).Path.Replace('\', '/')
+   $env:SOURCE_SQLITE_URL = "file:$sqliteFile"
+   $env:DATABASE_URL = "<Render External Database URL>"
+   Set-Location backend
+   npm run db:check-sqlite-migration
+   npm run db:migrate-sqlite-to-postgres
+   ```
 
-```powershell
-cloudflared --version
-```
+4. Clear the two environment variables when done:
 
-Official builds: [Cloudflare tunnel downloads](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/).
+   ```powershell
+   Remove-Item Env:SOURCE_SQLITE_URL
+   Remove-Item Env:DATABASE_URL
+   ```
 
-## 2. Backend environment (this computer)
+The existing local SQLite file is not changed. The target must be empty; the migration refuses to merge into a database that already contains users or companies.
 
-`backend/.env` (never commit this file):
+## Local development
 
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | Keep `file:./dev.db` so Prisma uses `backend/prisma/dev.db` |
-| `PORT` | `3000` |
-| `JWT_SECRET` / `JWT_REFRESH_SECRET` | Long random strings in production |
-| `GROQ_API_KEY` | Groq key — backend only |
-| `FRONTEND_URL` | Exact Vercel origin, e.g. `https://your-app.vercel.app` (no trailing slash) |
-| `CORS_ORIGINS` | Optional extra origins, comma-separated (custom domain) |
-
-Copy from `backend/.env.example` if needed. Do not put Groq or JWT values in Angular.
-
-Auth uses **Bearer tokens in localStorage**, not cookies. Cross-origin Vercel → tunnel does not need cookie `SameSite` changes.
-
-## 3. Start NestJS
-
-From the repo root:
+For local development, start PostgreSQL from the repository root and then run the backend:
 
 ```powershell
-.\scripts\backup-database.ps1
-.\scripts\start-backend.ps1
+docker compose up -d postgres
+Set-Location backend
+Copy-Item .env.example .env  # only if backend/.env does not already exist
+npm ci
+npx prisma migrate dev
+npm run start:dev
 ```
 
-Check locally:
-
-```text
-http://127.0.0.1:3000/api/v1/health
-http://127.0.0.1:3000/api/docs
-```
-
-Leave this window open.
-
-Prisma: relative `file:./dev.db` is resolved to the existing `backend/prisma/dev.db`. Startup **never** runs `migrate reset`, seed, or deletes the file.
-
-If you add schema changes later, use non-destructive `npx prisma db push` or a new migration. Do not use `prisma migrate reset`.
-
-## 4. Cloudflare Tunnel
-
-### A. Quick Tunnel (temporary)
-
-New terminal, repo root:
+In another terminal:
 
 ```powershell
-.\scripts\start-backend-tunnel.ps1
+Set-Location frontend
+npm ci
+npm start
 ```
 
-`cloudflared` prints a URL such as `https://….trycloudflare.com`.
+The API is at `http://localhost:3000`, and the frontend is at `http://localhost:4201`. The SQLite file `backend/prisma/dev.db` is retained only as the source for the optional one-time data transfer. The app now uses PostgreSQL.
 
-- REST: `https://THAT-HOST/api/v1/health`
-- Docs: `https://THAT-HOST/api/docs`
-- Socket.IO: client URL `https://THAT-HOST/events` (browser uses **WSS** after upgrade: `wss://THAT-HOST/events`)
-
-**Limitations:** the hostname **changes every restart**. After each change you must update Vercel `API_URL` and **redeploy** Angular. Fine for a test with a friend; not a stable production name.
-
-### B. Named tunnel (stable, needs your domain)
-
-This script will not log in or create a domain. You need a Cloudflare account and a hostname you already control.
-
-```powershell
-cloudflared tunnel login
-cloudflared tunnel create buzines-api
-cloudflared tunnel route dns buzines-api api.YOUR_DOMAIN
-```
-
-Point ingress at `http://127.0.0.1:3000`, then:
-
-```powershell
-.\scripts\start-backend-tunnel.ps1 -Named -TunnelName buzines-api
-```
-
-## 5. Configure Angular production URLs
-
-After you have the public API origin from Cloudflare, set Vercel Environment Variables (Production):
-
-| Name | Value |
-|---|---|
-| `API_URL` | `https://YOUR_PUBLIC_API_HOST/api/v1` |
-| `WS_URL` | `https://YOUR_PUBLIC_API_HOST/events` |
-
-Do not use `localhost` or `127.0.0.1` here.
-
-`frontend/scripts/patch-env.mjs` writes those values into `environment.production.ts` **during the Vercel build**. Development (`ng serve` on port 4201) still uses `http://127.0.0.1:3000`.
-
-## 6. Deploy Angular to Vercel (you click deploy)
-
-1. Push this repo to GitHub (without `.env` and without `*.db`).
-2. [vercel.com](https://vercel.com) → Add project → this repo.
-3. **Root Directory:** `frontend`
-4. Build command / output: already in `frontend/vercel.json`.
-5. Add `API_URL` and `WS_URL` (step 5).
-6. Deploy.
-
-SPA routing: `vercel.json` rewrites unknown paths to `index.html`.
-
-On the PC, set `FRONTEND_URL` to the Vercel origin (`https://….vercel.app` or your custom domain) and restart NestJS so CORS allows that origin. `*.vercel.app` is also allowed.
-
-## 7. CORS
-
-Allowed:
-
-- `FRONTEND_URL`
-- `CORS_ORIGINS` (comma-separated)
-- local `localhost` / `127.0.0.1` for development
-- `https://*.vercel.app`
-
-Credentials are allowed only for those origins (not `*`). Socket.IO `/events` uses the same origin rules.
-
-## 8. Verify
-
-From any network (or your phone off Wi‑Fi):
-
-1. REST: `https://YOUR_PUBLIC_API_HOST/api/v1/health` → `{ "ok": true, ... }`
-2. Open the Vercel site → register / login (JWT in localStorage).
-3. WebSocket: after login, browser DevTools → Network → WS to `/events` should be **wss** and status 101 if a client connects. The UI currently talks to the API over REST; Socket.IO is ready on `/events`.
-4. Give your friend **only the Vercel URL**, not `localhost` and not the SQLite file.
-
-Local check script (does not deploy):
-
-```powershell
-.\scripts\check-deployment.ps1
-```
-
-## 9. Backup SQLite
-
-```powershell
-.\scripts\backup-database.ps1
-```
-
-Copies `backend/prisma/dev.db` to `backups/dev-YYYYMMDD-HHMMSS.db`. Previous backups are never overwritten.
-
-## 10. After you shut down the PC
-
-1. Power on, network up.
-2. `.\scripts\start-backend.ps1`
-3. `.\scripts\start-backend-tunnel.ps1` (or named tunnel).
-4. If you used a **Quick Tunnel**, copy the new URL into Vercel `API_URL` / `WS_URL` and **redeploy** the frontend.
-5. Named tunnel: hostname stays the same; no frontend rebuild.
-
-## 11. Common problems
-
-| Symptom | What to try |
-|---|---|
-| Friend sees the site but login fails | NestJS or tunnel not running; CORS: set `FRONTEND_URL` to the exact Vercel origin; check `API_URL` on the last Vercel deploy |
-| CORS error | Restart API after changing `FRONTEND_URL`; no trailing slash; custom domain must be in `FRONTEND_URL` or `CORS_ORIGINS` |
-| Quick Tunnel URL changed | Redeploy Vercel with the new `API_URL` |
-| Health works, AI does not | `GROQ_API_KEY` in `backend/.env` only |
-| Database empty / wrong file | Confirm `backend/prisma/dev.db` and `DATABASE_URL=file:./dev.db`. Never run `prisma migrate reset` |
-| Port 3000 in use | Stop the other Nest process, then start-backend again |
-
-## 12. What must stay private
-
-- `backend/.env`
-- Groq / JWT secrets
-- `backend/prisma/dev.db` (gitignored)
-- Cloudflare tunnel credentials (`~/.cloudflared/`)
-- Prisma Studio — do not tunnel port 5555
+Never commit `.env` files, API keys, JWT secrets, PostgreSQL URLs, or database files.

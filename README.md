@@ -72,11 +72,9 @@ npm start
 
 App runs at `http://localhost:4201`
 
-## Public access (friend in a browser)
+## Render deployment
 
-Frontend: Vercel. API: this Windows PC on port 3000, published with Cloudflare Tunnel. SQLite stays in `backend/prisma/dev.db`.
-
-See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for Cloudflare, Vercel, CORS, backups, and restart steps.
+The repository also includes a Render Blueprint for the Angular frontend, NestJS API, and PostgreSQL. It is intended for testing on Render's free tier; free PostgreSQL expires after 30 days. See **[DEPLOYMENT.md](./DEPLOYMENT.md)** before deploying or transferring local SQLite data.
 
 ## Project Structure
 

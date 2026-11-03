@@ -1,6 +1,6 @@
 # Database Schema
 
-PostgreSQL 16 with Prisma ORM. Full schema: `backend/prisma/schema.prisma`
+PostgreSQL 16 with Prisma ORM. Full schema: `backend/prisma/schema.prisma`. The old SQLite schema and migration history are retained under `backend/prisma/schema.sqlite.prisma` and `backend/prisma/sqlite-migrations-archive` for the one-time local data transfer.
 
 ## Entity Relationship Overview
 
@@ -68,6 +68,8 @@ Employee ──has──▶ Message
 
 ```bash
 cd backend
-npx prisma migrate dev --name init
+npx prisma migrate dev --name change_name
 npx prisma studio  # Visual database browser
 ```
+
+On Render, the API runs `prisma migrate deploy` at startup. The initial PostgreSQL migration creates the schema from the current Prisma models.

@@ -1,0 +1,1033 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/sqlite-client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("SOURCE_SQLITE_URL")
+}
+
+enum DirectiveStatus {
+  RECEIVED
+  ANALYZING
+  DISPATCHED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  COMPANY_OWNER
+  MANAGER
+  TEAM_LEAD
+  EMPLOYEE
+  HR
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  ON_VACATION
+  SICK_LEAVE
+  TERMINATED
+}
+
+enum ExperienceLevel {
+  JUNIOR
+  MIDDLE
+  SENIOR
+  LEAD
+  PRINCIPAL
+}
+
+enum ProjectPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskStatus {
+  PENDING
+  ASSIGNED
+  ACCEPTED
+  IN_PROGRESS
+  BLOCKED
+  COMPLETED
+  CANCELLED
+  OVERDUE
+  COMPLETED_PENDING_VERIFICATION
+  REJECTED
+}
+
+enum TaskCategory {
+  FRONTEND
+  BACKEND
+  DESIGN
+  DATABASE
+  DEVOPS
+  TESTING
+  DOCUMENTATION
+  OTHER
+}
+
+enum TaskResponseType {
+  ACCEPTED
+  STARTED
+  COMPLETED
+  BLOCKED
+  NEED_HELP
+  RUNNING_LATE
+  CUSTOM
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  TELEGRAM
+  WHATSAPP
+  SMS
+}
+
+enum NotificationType {
+  MORNING_BRIEFING
+  TASK_ASSIGNMENT
+  REMINDER
+  DEADLINE_WARNING
+  MANAGER_MESSAGE
+  CONGRATULATIONS
+  PERFORMANCE_REPORT
+  BLOCKER_ALERT
+  ESCALATION
+  AI_RECOMMENDATION
+  VERIFICATION
+  WORKFLOW
+  APPROVAL
+}
+
+enum AiAutonomyLevel {
+  OBSERVER
+  ADVISOR
+  GUIDED_AUTONOMY
+  FULL_AUTONOMY
+}
+
+enum CeoIssueStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum CeoDecisionStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+  EXECUTED
+  VERIFIED
+  DRAFT
+  PENDING_APPROVAL
+  EXECUTING
+  COMPLETED
+  EVALUATION_PENDING
+  EVALUATED
+  CANCELLED
+}
+
+enum AiPersonality {
+  PROFESSIONAL
+  FRIENDLY
+  DIRECT
+  SUPPORTIVE
+}
+
+enum CalendarEventType {
+  MEETING
+  DEADLINE
+  VACATION
+  BIRTHDAY
+  COMPANY_EVENT
+  REMINDER
+}
+
+enum ReportPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+// ─── Auth & Users ────────────────────────────────────────────────────────────
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String    @map("password_hash")
+  firstName        String    @map("first_name")
+  lastName         String    @map("last_name")
+  role             UserRole  @default(EMPLOYEE)
+  isEmailVerified  Boolean   @default(false) @map("is_email_verified")
+  twoFactorEnabled Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorSecret  String?   @map("two_factor_secret")
+  avatarUrl        String?   @map("avatar_url")
+  lastLoginAt      DateTime? @map("last_login_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  refreshTokens RefreshToken[]
+  ownedCompanies Company[] @relation("CompanyOwner")
+  employeeProfile Employee?
+  sentMessages    Message[] @relation("MessageSender")
+  auditEvents     AuditEvent[]
+  verificationReviews VerificationReview[]
+  workflowCreated WorkflowDefinition[] @relation("WorkflowCreator")
+  memoriesEdited  BusinessMemory[] @relation("MemoryEditor")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ─── Company & Organization ──────────────────────────────────────────────────
+
+model Company {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  industry    String?
+  businessType String? @map("business_type")
+  teamSize    Int?     @map("team_size")
+  onboardingDone Boolean @default(false) @map("onboarding_done")
+  timezone    String   @default("UTC")
+  logoUrl     String?  @map("logo_url")
+  ownerId     String   @map("owner_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  owner        User              @relation("CompanyOwner", fields: [ownerId], references: [id])
+  departments  Department[]
+  employees    Employee[]
+  projects     Project[]
+  settings     CompanySettings?
+  aiSettings   AiSettings?
+  integrations Integration[]
+  calendarEvents CalendarEvent[]
+  reports      Report[]
+  aiRecommendations AiRecommendation[]
+  directives   AdminDirective[]
+  goals        CompanyGoal[]
+  employeeKpis EmployeeKpi[]
+  ceoIssues    CeoIssue[]
+  ceoDecisions CeoDecision[]
+  auditEvents  AuditEvent[]
+  completionReports CompletionReport[]
+  verificationRules VerificationRule[]
+  workflows    WorkflowDefinition[]
+  workflowRuns WorkflowRun[]
+  memories     BusinessMemory[]
+  employeeCapacities EmployeeCapacity[]
+  scenarios    SimulationScenario[]
+  aiOperations AiOperation[]
+  jobRuns      JobRun[]
+  idempotencyKeys IdempotencyKey[]
+
+  @@map("companies")
+}
+
+model CompanySettings {
+  id                    String   @id @default(uuid())
+  companyId             String   @unique @map("company_id")
+  workingHoursStart     String   @default("09:00") @map("working_hours_start")
+  workingHoursEnd       String   @default("18:00") @map("working_hours_end")
+  workingDays           Json     @default("[1,2,3,4,5]") @map("working_days")
+  dailyPlanTime         String   @default("07:30") @map("daily_plan_time")
+  reminderIntervalMin   Int      @default(120) @map("reminder_interval_min")
+  followUpIntervalMin   Int      @default(60) @map("follow_up_interval_min")
+  language              String   @default("en")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("company_settings")
+}
+
+model AiSettings {
+  id              String          @id @default(uuid())
+  companyId       String          @unique @map("company_id")
+  autonomyLevel   AiAutonomyLevel @default(ADVISOR) @map("autonomy_level")
+  personality     AiPersonality   @default(PROFESSIONAL)
+  customPrompt    String?         @map("custom_prompt")
+  businessContext String?         @map("business_context")
+  enableAutoAssign Boolean        @default(true) @map("enable_auto_assign")
+  enableAutoEscalate Boolean      @default(true) @map("enable_auto_escalate")
+  enableSmartAnalysis Boolean     @default(true) @map("enable_smart_analysis")
+  aiPaused        Boolean         @default(false) @map("ai_paused")
+  pauseReason     String?         @map("pause_reason")
+  pausedAt        DateTime?       @map("paused_at")
+  pausedByUserId  String?         @map("paused_by_user_id")
+  maxLowRiskPerDay Int            @default(50) @map("max_low_risk_per_day")
+  allowExternalActions Boolean    @default(false) @map("allow_external_actions")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("ai_settings")
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  name        String
+  description String?
+  managerId   String?  @map("manager_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  manager   Employee?  @relation("DepartmentManager", fields: [managerId], references: [id])
+  employees Employee[] @relation("DepartmentEmployees")
+  projects  Project[]
+
+  @@unique([companyId, name])
+  @@map("departments")
+}
+
+// ─── Employees ───────────────────────────────────────────────────────────────
+
+model Employee {
+  id               String          @id @default(uuid())
+  companyId        String          @map("company_id")
+  departmentId     String?         @map("department_id")
+  userId           String?         @unique @map("user_id")
+  managerId        String?         @map("manager_id")
+  firstName        String          @map("first_name")
+  lastName         String          @map("last_name")
+  email            String
+  phone            String?
+  telegramUsername String?         @map("telegram_username")
+  telegramChatId   String?         @map("telegram_chat_id")
+  telegramLinkCode String?         @unique @map("telegram_link_code")
+  whatsappNumber   String?         @map("whatsapp_number")
+  photoUrl         String?         @map("photo_url")
+  role             String
+  experienceLevel  ExperienceLevel @default(MIDDLE) @map("experience_level")
+  status           EmployeeStatus  @default(ACTIVE)
+  workingHoursStart String?        @map("working_hours_start")
+  workingHoursEnd  String?         @map("working_hours_end")
+  vacationStart    DateTime?       @map("vacation_start")
+  vacationEnd      DateTime?       @map("vacation_end")
+  isOnline         Boolean         @default(false) @map("is_online")
+  lastActiveAt     DateTime?       @map("last_active_at")
+  hiredAt          DateTime?       @map("hired_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  company      Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department   Department?       @relation("DepartmentEmployees", fields: [departmentId], references: [id])
+  user         User?             @relation(fields: [userId], references: [id])
+  manager      Employee?         @relation("EmployeeManager", fields: [managerId], references: [id])
+  directReports Employee[]       @relation("EmployeeManager")
+  managedDepartments Department[] @relation("DepartmentManager")
+  skills       EmployeeSkill[]
+  aiProfile    EmployeeAiProfile?
+  taskAssignments TaskAssignment[]
+  dailyPlans   DailyPlan[]
+  taskResponses TaskResponse[]
+  messages     Message[]
+  notifications Notification[]
+  performanceMetrics PerformanceMetric[]
+  kpis             EmployeeKpi[]
+  completionReports CompletionReport[]
+  capacity         EmployeeCapacity?
+
+  @@unique([companyId, email])
+  @@map("employees")
+}
+
+model EmployeeSkill {
+  id         String @id @default(uuid())
+  employeeId String @map("employee_id")
+  name       String
+  level      Int    @default(3)
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, name])
+  @@map("employee_skills")
+}
+
+model EmployeeAiProfile {
+  id                    String   @id @default(uuid())
+  employeeId            String   @unique @map("employee_id")
+  avgCompletionTimeMin  Float?   @map("avg_completion_time_min")
+  taskCompletionRate    Float?   @map("task_completion_rate")
+  onTimeRate            Float?   @map("on_time_rate")
+  peakProductivityHours Json     @default("[]") @map("peak_productivity_hours")
+  commonBlockers        Json     @default("[]") @map("common_blockers")
+  strengths             Json     @default("[]")
+  weaknesses            Json     @default("[]")
+  productivityScore     Float    @default(0) @map("productivity_score")
+  responseTimeAvgMin    Float?   @map("response_time_avg_min")
+  aiNotes               String?  @map("ai_notes")
+  lastAnalyzedAt        DateTime? @map("last_analyzed_at")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("employee_ai_profiles")
+}
+
+// ─── Projects & Tasks ────────────────────────────────────────────────────────
+
+model Project {
+  id          String          @id @default(uuid())
+  companyId   String          @map("company_id")
+  departmentId String?        @map("department_id")
+  name        String
+  description String?
+  deadline    DateTime
+  priority    ProjectPriority @default(MEDIUM)
+  status      ProjectStatus   @default(PLANNING)
+  progress    Float           @default(0)
+  healthScore Float           @default(100) @map("health_score")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department Department? @relation(fields: [departmentId], references: [id])
+  tasks      Task[]
+  directives AdminDirective[]
+
+  @@map("projects")
+}
+
+model Task {
+  id              String       @id @default(uuid())
+  projectId       String       @map("project_id")
+  parentTaskId    String?      @map("parent_task_id")
+  title           String
+  description     String?
+  category        TaskCategory @default(OTHER)
+  status          TaskStatus   @default(PENDING)
+  priority        ProjectPriority @default(MEDIUM)
+  estimatedHours  Float?       @map("estimated_hours")
+  actualHours     Float?       @map("actual_hours")
+  deadline        DateTime?
+  completedAt     DateTime?    @map("completed_at")
+  aiGenerated     Boolean      @default(false) @map("ai_generated")
+  sortOrder       Int          @default(0) @map("sort_order")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentTask   Task?            @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
+  subtasks     Task[]           @relation("TaskHierarchy")
+  assignments  TaskAssignment[]
+  responses    TaskResponse[]
+  dependencies TaskDependency[] @relation("DependentTask")
+  dependents   TaskDependency[] @relation("BlockingTask")
+  dailyPlanTasks DailyPlanTask[]
+  completionReports CompletionReport[]
+
+  @@map("tasks")
+}
+
+model TaskDependency {
+  id              String @id @default(uuid())
+  taskId          String @map("task_id")
+  dependsOnTaskId String @map("depends_on_task_id")
+
+  task          Task @relation("DependentTask", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOnTask Task @relation("BlockingTask", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, dependsOnTaskId])
+  @@map("task_dependencies")
+}
+
+model TaskAssignment {
+  id          String     @id @default(uuid())
+  taskId      String     @map("task_id")
+  employeeId  String     @map("employee_id")
+  assignedAt  DateTime   @default(now()) @map("assigned_at")
+  assignedBy  String     @default("AI") @map("assigned_by")
+  status      TaskStatus @default(ASSIGNED)
+  completedAt DateTime?  @map("completed_at")
+
+  task     Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, employeeId])
+  @@map("task_assignments")
+}
+
+model TaskResponse {
+  id           String           @id @default(uuid())
+  taskId       String           @map("task_id")
+  employeeId   String           @map("employee_id")
+  responseType TaskResponseType @map("response_type")
+  message      String?
+  progressPct  Int?             @map("progress_pct")
+  aiAnalysis   String?          @map("ai_analysis")
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  task     Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("task_responses")
+}
+
+// ─── Daily Plans ─────────────────────────────────────────────────────────────
+
+model DailyPlan {
+  id         String   @id @default(uuid())
+  employeeId String   @map("employee_id")
+  planDate   DateTime @map("plan_date")
+  message    String?
+  sentAt     DateTime? @map("sent_at")
+  acceptedAt DateTime? @map("accepted_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  employee Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  tasks    DailyPlanTask[]
+
+  @@unique([employeeId, planDate])
+  @@map("daily_plans")
+}
+
+model DailyPlanTask {
+  id          String    @id @default(uuid())
+  dailyPlanId String    @map("daily_plan_id")
+  taskId      String    @map("task_id")
+  sortOrder   Int       @default(0) @map("sort_order")
+  deadline    DateTime?
+  status      TaskStatus @default(ASSIGNED)
+
+  dailyPlan DailyPlan @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("daily_plan_tasks")
+}
+
+// ─── Communication ───────────────────────────────────────────────────────────
+
+model Message {
+  id          String           @id @default(uuid())
+  employeeId  String?          @map("employee_id")
+  senderId    String?          @map("sender_id")
+  direction   MessageDirection
+  channel     NotificationChannel
+  content     String
+  isFromAi    Boolean          @default(false) @map("is_from_ai")
+  metadata    Json?
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  sender   User?     @relation("MessageSender", fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model Notification {
+  id        String              @id @default(uuid())
+  employeeId String             @map("employee_id")
+  type      NotificationType
+  channel   NotificationChannel
+  title     String
+  content   String
+  isRead    Boolean             @default(false) @map("is_read")
+  sentAt    DateTime?           @map("sent_at")
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Integration {
+  id            String    @id @default(uuid())
+  companyId     String    @map("company_id")
+  type          String
+  config        Json
+  isActive      Boolean   @default(false) @map("is_active")
+  connectionStatus String @default("DISCONNECTED") @map("connection_status")
+  lastSyncAt    DateTime? @map("last_sync_at")
+  lastError     String?   @map("last_error")
+  syncRetryCount Int      @default(0) @map("sync_retry_count")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, type])
+  @@map("integrations")
+}
+
+// ─── Analytics & Reports ─────────────────────────────────────────────────────
+
+model PerformanceMetric {
+  id              String   @id @default(uuid())
+  employeeId      String   @map("employee_id")
+  date            DateTime
+  tasksCompleted  Int      @default(0) @map("tasks_completed")
+  tasksAssigned   Int      @default(0) @map("tasks_assigned")
+  hoursWorked     Float    @default(0) @map("hours_worked")
+  productivityScore Float  @default(0) @map("productivity_score")
+  onTimeRate      Float    @default(0) @map("on_time_rate")
+  responseTimeMin Float?   @map("response_time_min")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, date])
+  @@map("performance_metrics")
+}
+
+model Report {
+  id        String       @id @default(uuid())
+  companyId String       @map("company_id")
+  period    ReportPeriod
+  title     String
+  content   Json
+  aiSummary String?      @map("ai_summary")
+  startDate DateTime     @map("start_date")
+  endDate   DateTime     @map("end_date")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+model AiRecommendation {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  type        String
+  title       String
+  description String
+  impact      String?
+  isAccepted  Boolean? @map("is_accepted")
+  isDismissed Boolean  @default(false) @map("is_dismissed")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("ai_recommendations")
+}
+
+// ─── Calendar ────────────────────────────────────────────────────────────────
+
+model CalendarEvent {
+  id          String            @id @default(uuid())
+  companyId   String            @map("company_id")
+  title       String
+  description String?
+  type        CalendarEventType
+  startAt     DateTime          @map("start_at")
+  endAt       DateTime?         @map("end_at")
+  allDay      Boolean           @default(false) @map("all_day")
+  employeeId  String?           @map("employee_id")
+  projectId   String?           @map("project_id")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("calendar_events")
+}
+
+// ─── Admin Directives (Owner gives order → AI executes) ─────────────────────
+
+model AdminDirective {
+  id          String          @id @default(uuid())
+  companyId   String          @map("company_id")
+  instruction String
+  aiAnalysis  String?         @map("ai_analysis")
+  status      DirectiveStatus @default(RECEIVED)
+  progress    Float           @default(0)
+  projectId   String?         @map("project_id")
+  tasksTotal  Int             @default(0) @map("tasks_total")
+  tasksDone   Int             @default(0) @map("tasks_done")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  company Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id])
+
+  @@map("admin_directives")
+}
+
+model CompanyGoal {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  title       String
+  description String?
+  targetValue Float?   @map("target_value")
+  unit        String?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  decisions CeoDecision[]
+
+  @@map("company_goals")
+}
+
+model EmployeeKpi {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  employeeId  String   @map("employee_id")
+  name        String
+  planValue   Float?   @map("plan_value")
+  factValue   Float?   @map("fact_value")
+  unit        String?
+  period      String   @default("month")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("employee_kpis")
+}
+
+model CeoIssue {
+  id          String         @id @default(uuid())
+  companyId   String         @map("company_id")
+  title       String
+  evidence    String
+  impact      String?
+  rootCause   String?        @map("root_cause")
+  confidence  Float          @default(0)
+  urgency     String         @default("MEDIUM")
+  status      CeoIssueStatus @default(OPEN)
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  company   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  decisions CeoDecision[]
+
+  @@map("ceo_issues")
+}
+
+model CeoDecision {
+  id             String            @id @default(uuid())
+  issueId        String            @map("issue_id")
+  companyId      String            @map("company_id")
+  goalId         String?           @map("goal_id")
+  proposal       String
+  expectedEffect String?           @map("expected_effect")
+  actualEffect   String?           @map("actual_effect")
+  status         CeoDecisionStatus @default(PROPOSED)
+  directiveId    String?           @map("directive_id")
+  factsSnapshot  String?           @map("facts_snapshot")
+  diagnosis      String?
+  rootCauseHypotheses String?      @map("root_cause_hypotheses")
+  proposedActions Json?            @map("proposed_actions")
+  risks          String?
+  estimatedCost  String?           @map("estimated_cost")
+  confidence     Float?
+  uncertainty    String?
+  decidedByUserId String?          @map("decided_by_user_id")
+  decidedAt      DateTime?         @map("decided_at")
+  decisionReason String?           @map("decision_reason")
+  generatedTaskIds Json?           @map("generated_task_ids")
+  workflowRefs   Json?             @map("workflow_refs")
+  evaluationDate DateTime?         @map("evaluation_date")
+  lessonsLearned String?           @map("lessons_learned")
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  issue   CeoIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  company Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  goal    CompanyGoal? @relation(fields: [goalId], references: [id])
+
+  @@index([companyId, status])
+  @@index([companyId, createdAt])
+  @@map("ceo_decisions")
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING_REVIEW
+  VERIFIED
+  REJECTED
+  DISCREPANCY
+}
+
+enum MemoryKind {
+  FACT
+  SUMMARY
+  RULE
+  LESSON
+  PROBLEM
+  DECISION_OUTCOME
+}
+
+enum MemoryProvenance {
+  USER
+  VERIFIED
+  AI_HYPOTHESIS
+  SYSTEM
+  OUTDATED
+}
+
+enum WorkflowRunStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+enum AiOperationStatus {
+  STARTED
+  SUCCESS
+  FAILED
+  RETRYING
+  BLOCKED
+}
+
+model CompletionReport {
+  id              String             @id @default(uuid())
+  companyId       String             @map("company_id")
+  taskId          String             @map("task_id")
+  employeeId      String             @map("employee_id")
+  summary         String
+  evidenceLinks   Json               @default("[]") @map("evidence_links")
+  measurableOutcome String?          @map("measurable_outcome")
+  claimedValue    Float?             @map("claimed_value")
+  verifiedValue   Float?             @map("verified_value")
+  internalRecordNote String?         @map("internal_record_note")
+  status          VerificationStatus @default(PENDING_REVIEW)
+  idempotencyKey  String             @unique @map("idempotency_key")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  company  Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  task     Task                  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  employee Employee              @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  reviews  VerificationReview[]
+
+  @@index([companyId, status])
+  @@index([taskId])
+  @@map("completion_reports")
+}
+
+model VerificationReview {
+  id         String             @id @default(uuid())
+  reportId   String             @map("report_id")
+  reviewerId String             @map("reviewer_id")
+  status     VerificationStatus
+  reason     String?
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  report   CompletionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reviewer User             @relation(fields: [reviewerId], references: [id])
+
+  @@map("verification_reviews")
+}
+
+model VerificationRule {
+  id          String       @id @default(uuid())
+  companyId   String       @map("company_id")
+  taskCategory TaskCategory @map("task_category")
+  requireEvidence Boolean  @default(true) @map("require_evidence")
+  requireMeasurable Boolean @default(false) @map("require_measurable")
+  autoVerifyIfNoRecords Boolean @default(false) @map("auto_verify_if_no_records")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, taskCategory])
+  @@map("verification_rules")
+}
+
+model WorkflowDefinition {
+  id            String   @id @default(uuid())
+  companyId     String   @map("company_id")
+  createdById   String   @map("created_by_id")
+  name          String
+  description   String?
+  enabled       Boolean  @default(true)
+  triggerType   String   @map("trigger_type")
+  triggerConfig Json     @default("[]") @map("trigger_config")
+  conditions    Json     @default("[]")
+  actions       Json     @default("[]")
+  requireApproval Boolean @default(false) @map("require_approval")
+  retryLimit    Int      @default(2) @map("retry_limit")
+  maxRunsPerHour Int     @default(20) @map("max_runs_per_hour")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  company   Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy User           @relation("WorkflowCreator", fields: [createdById], references: [id])
+  runs      WorkflowRun[]
+
+  @@index([companyId, enabled])
+  @@map("workflow_definitions")
+}
+
+model WorkflowRun {
+  id             String            @id @default(uuid())
+  companyId      String            @map("company_id")
+  workflowId     String            @map("workflow_id")
+  idempotencyKey String            @unique @map("idempotency_key")
+  status         WorkflowRunStatus @default(PENDING)
+  triggerPayload Json              @default("[]") @map("trigger_payload")
+  result         Json?
+  error          String?
+  attempt        Int               @default(1)
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  company  Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workflow WorkflowDefinition @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+  @@map("workflow_runs")
+}
+
+model BusinessMemory {
+  id          String           @id @default(uuid())
+  companyId   String           @map("company_id")
+  kind        MemoryKind
+  provenance  MemoryProvenance @default(USER)
+  title       String
+  content     String
+  structured  Json?
+  sourceRef   String?          @map("source_ref")
+  confidence  Float            @default(0.7)
+  archived    Boolean          @default(false)
+  supersededById String?       @map("superseded_by_id")
+  editedById  String?          @map("edited_by_id")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  company  Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  editedBy User?   @relation("MemoryEditor", fields: [editedById], references: [id])
+
+  @@index([companyId, archived, kind])
+  @@map("business_memories")
+}
+
+model EmployeeCapacity {
+  id              String    @id @default(uuid())
+  companyId       String    @map("company_id")
+  employeeId      String    @unique @map("employee_id")
+  hoursPerWeek    Float     @default(40) @map("hours_per_week")
+  available       Boolean   @default(true)
+  unavailableUntil DateTime? @map("unavailable_until")
+  notes           String?
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("employee_capacities")
+}
+
+model SimulationScenario {
+  id             String   @id @default(uuid())
+  companyId      String   @map("company_id")
+  name           String
+  hypothesis     String
+  assumptions    Json     @default("[]")
+  missingInputs  Json     @default("[]") @map("missing_inputs")
+  projected      Json     @default("[]")
+  actualOutcome  Json?    @map("actual_outcome")
+  decisionId     String?  @map("decision_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("simulation_scenarios")
+}
+
+model AuditEvent {
+  id             String   @id @default(uuid())
+  companyId      String   @map("company_id")
+  actorUserId    String?  @map("actor_user_id")
+  action         String
+  targetType     String   @map("target_type")
+  targetId       String?  @map("target_id")
+  outcome        String   @default("SUCCESS")
+  metadata       Json?
+  correlationId  String?  @map("correlation_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  actor   User?   @relation(fields: [actorUserId], references: [id])
+
+  @@index([companyId, createdAt])
+  @@map("audit_events")
+}
+
+model AiOperation {
+  id           String            @id @default(uuid())
+  companyId    String            @map("company_id")
+  type         String
+  status       AiOperationStatus @default(STARTED)
+  summary      String
+  error        String?
+  tokensUsed   Int?              @map("tokens_used")
+  correlationId String?          @map("correlation_id")
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+  @@map("ai_operations")
+}
+
+model JobRun {
+  id          String   @id @default(uuid())
+  companyId   String?  @map("company_id")
+  jobName     String   @map("job_name")
+  status      String
+  detail      String?
+  startedAt   DateTime @default(now()) @map("started_at")
+  finishedAt  DateTime? @map("finished_at")
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([jobName, startedAt])
+  @@map("job_runs")
+}
+
+model IdempotencyKey {
+  id        String   @id @default(uuid())
+  companyId String   @map("company_id")
+  scope     String
+  key       String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, scope, key])
+  @@map("idempotency_keys")
+}
