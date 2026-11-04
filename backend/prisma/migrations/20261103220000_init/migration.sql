@@ -1004,4 +1004,3 @@ ALTER TABLE "job_runs" ADD CONSTRAINT "job_runs_company_id_fkey" FOREIGN KEY ("c
 -- AddForeignKey
 ALTER TABLE "idempotency_keys" ADD CONSTRAINT "idempotency_keys_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
-\n
