@@ -2,6 +2,7 @@ import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { CompanyContextService } from '../../core/services/company-context.service';
 import { TranslationService } from '../../core/i18n/translation.service';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
@@ -11,76 +12,35 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
   standalone: true,
   imports: [FormsModule, DatePipe, TranslatePipe],
   template: `
-    <div class="animate-fade-in mx-auto max-w-4xl space-y-8">
-      <div class="glass-card p-8 text-center">
-        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-violet-600 text-3xl shadow-xl">
-          🎯
-        </div>
-        <h2 class="text-2xl font-bold text-slate-900 dark:text-white">{{ 'commands.title' | t }}</h2>
-        <p class="mx-auto mt-2 max-w-lg text-sm text-slate-500">{{ 'commands.subtitle' | t }}</p>
-      </div>
-
-      <div class="glass-card p-6">
-        <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-          {{ 'commands.label' | t }}
-        </label>
-        <textarea
-          [(ngModel)]="instruction"
-          rows="3"
-          class="input-field mb-4"
-          [placeholder]="'commands.placeholder' | t"
-        ></textarea>
-        <label class="mb-4 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-          <input type="checkbox" [(ngModel)]="autoSend" class="rounded" />
-          {{ 'commands.autoSend' | t }}
-        </label>
-        <div class="flex flex-wrap gap-2">
-          <button class="btn-primary" (click)="submitOrder()" [disabled]="loading() || !instruction.trim()">
-            {{ loading() ? ('commands.aiWorking' | t) : ('commands.createTasks' | t) }}
-          </button>
-          <button class="btn-secondary" (click)="sendTasks()" [disabled]="dispatchLoading()">
-            {{ dispatchLoading() ? '...' : ('commands.dispatch' | t) }}
-          </button>
-          <button class="btn-secondary" (click)="followUp()" [disabled]="followUpLoading()">
-            {{ followUpLoading() ? '...' : ('commands.followUp' | t) }}
-          </button>
+    <div class="animate-fade-in grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div class="space-y-5">
+        <div>
+          <h2 class="text-2xl font-extrabold tracking-tight text-ink dark:text-white">{{ 'layout.greeting' | t }}{{ authName() ? ', ' + authName() : '' }}</h2>
+          <p class="mt-1 max-w-2xl text-sm text-[#8a8175]">{{ 'layout.greetingLead' | t }}</p>
         </div>
 
-        @if (aiWarning()) {
-          <p class="mt-3 text-sm text-amber-600">{{ aiWarning() }}</p>
-        }
-        @if (dispatchResult()) {
-          <p class="mt-3 text-sm" [class]="dispatchResult()!.sent > 0 ? 'text-emerald-600' : 'text-amber-600'">
-            {{ dispatchResult()!.message }}
-          </p>
-        }
-        @if (error()) {
-          <p class="mt-3 text-sm text-red-500">{{ error() }}</p>
-        }
-      </div>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          @for (step of steps(); track step.label) {
+            <div class="glass-card p-4">
+              <div class="text-lg">{{ step.icon }}</div>
+              <p class="mt-2 text-xs font-extrabold">{{ step.label }}</p>
+              <p class="mt-1 text-[11px] text-[#8a8175]">{{ step.desc }}</p>
+            </div>
+          }
+        </div>
 
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        @for (step of steps(); track step.label) {
-          <div class="glass-card p-4 text-center">
-            <div class="text-2xl">{{ step.icon }}</div>
-            <p class="mt-2 text-xs font-semibold text-slate-800 dark:text-slate-200">{{ step.label }}</p>
-            <p class="mt-1 text-xs text-slate-500">{{ step.desc }}</p>
-          </div>
-        }
-      </div>
-
-      <div>
-        <h3 class="mb-4 text-lg font-semibold text-slate-900 dark:text-white">{{ 'commands.yourCommands' | t }}</h3>
-        <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-extrabold">{{ 'commands.yourCommands' | t }} <span class="text-[#8a8175]">({{ directives().length }})</span></h3>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
           @for (d of directives(); track d.id) {
-            <div class="glass-card p-6">
-              <div class="flex items-start justify-between gap-4">
-                <div>
-                  <p class="font-semibold text-slate-900 dark:text-white">"{{ d.instruction }}"</p>
+            <div class="glass-card p-5">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="font-extrabold text-ink dark:text-white">{{ d.instruction }}</p>
                   @if (d.aiAnalysis) {
-                    <p class="mt-1 text-xs text-slate-500">{{ d.aiAnalysis }}</p>
+                    <p class="mt-1 line-clamp-2 text-xs text-[#8a8175]">{{ d.aiAnalysis }}</p>
                   }
-                  <p class="mt-2 text-xs text-slate-400">{{ d.createdAt | date:'medium':'':i18n.dateLocale() }}</p>
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
                   <span class="rounded-full px-3 py-1 text-xs font-medium" [class]="statusClass(d.status)">
@@ -103,8 +63,8 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
                   <span>{{ 'commands.tasksDone' | t:{ done: d.tasksDone, total: d.tasksTotal } }}</span>
                   <span>{{ d.progress }}%</span>
                 </div>
-                <div class="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                  <div class="h-full rounded-full bg-gradient-to-r from-primary-500 to-emerald-400 transition-all" [style.width.%]="d.progress"></div>
+                <div class="h-1.5 overflow-hidden rounded-full bg-[#f0e7d8] dark:bg-white/10">
+                  <div class="h-full rounded-full bg-gradient-to-r from-[#f3c85a] to-[#e0a41e]" [style.width.%]="d.progress"></div>
                 </div>
               </div>
 
@@ -152,17 +112,56 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
               }
             </div>
           } @empty {
-            <div class="glass-card p-12 text-center text-slate-500">{{ 'commands.empty' | t }}</div>
+            <div class="glass-card p-12 text-center text-[#8a8175] md:col-span-2">{{ 'commands.empty' | t }}</div>
           }
         </div>
       </div>
+
+      <aside class="glass-card flex h-fit flex-col p-4 xl:sticky xl:top-0">
+        <div class="mb-3 flex items-center gap-2">
+          <span class="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-white">
+            <svg viewBox="0 0 64 64" class="h-4 w-4"><path fill="currentColor" d="M32 6l4 22 22 4-22 4-4 22-4-22-22-4 22-4z"/></svg>
+          </span>
+          <div>
+            <p class="text-sm font-extrabold">{{ 'brand.title' | t }}</p>
+            <p class="text-[11px] font-semibold text-emerald-600">{{ 'os.online' | t }}</p>
+          </div>
+        </div>
+        <label class="mb-2 text-xs font-bold text-[#8a8175]">{{ 'commands.label' | t }}</label>
+        <textarea [(ngModel)]="instruction" rows="4" class="input-field mb-3" [placeholder]="'commands.placeholder' | t"></textarea>
+        <label class="mb-3 flex items-center gap-2 text-xs text-[#6f675c]">
+          <input type="checkbox" [(ngModel)]="autoSend" class="rounded accent-[#e0a41e]" />
+          {{ 'commands.autoSend' | t }}
+        </label>
+        <div class="flex flex-col gap-2">
+          <button class="btn-primary" (click)="submitOrder()" [disabled]="loading() || !instruction.trim()">
+            {{ loading() ? ('commands.aiWorking' | t) : ('commands.createTasks' | t) }}
+          </button>
+          <button class="btn-secondary" (click)="sendTasks()" [disabled]="dispatchLoading()">
+            {{ dispatchLoading() ? '...' : ('commands.dispatch' | t) }}
+          </button>
+          <button class="btn-secondary" (click)="followUp()" [disabled]="followUpLoading()">
+            {{ followUpLoading() ? '...' : ('commands.followUp' | t) }}
+          </button>
+        </div>
+        @if (aiWarning()) { <p class="mt-3 text-xs text-amber-600">{{ aiWarning() }}</p> }
+        @if (dispatchResult()) {
+          <p class="mt-3 text-xs" [class]="dispatchResult()!.sent > 0 ? 'text-emerald-600' : 'text-amber-600'">{{ dispatchResult()!.message }}</p>
+        }
+        @if (error()) { <p class="mt-3 text-xs text-red-500">{{ error() }}</p> }
+      </aside>
     </div>
   `,
 })
 export class CommandsComponent implements OnInit {
   private api = inject(ApiService);
   private companyContext = inject(CompanyContextService);
+  private auth = inject(AuthService);
   readonly i18n = inject(TranslationService);
+
+  authName() {
+    return this.auth.user()?.firstName ?? '';
+  }
 
   instruction = '';
   autoSend = true;

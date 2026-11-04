@@ -12,58 +12,51 @@ import { PasswordInputComponent } from '../../../shared/components/password-inpu
   selector: 'app-register',
   standalone: true,
   imports: [FormsModule, RouterLink, TranslatePipe, LanguageSwitcherComponent, PasswordInputComponent],
+  styles: `
+    .login-scene {
+      background:
+        radial-gradient(ellipse at 72% 42%, rgba(240, 193, 75, 0.28), transparent 36%),
+        linear-gradient(115deg, #14110e 0%, #2a241c 48%, #0e0c0a 100%);
+    }
+  `,
   template: `
-    <div class="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-primary-950 to-slate-900 p-4">
+    <div class="login-scene relative flex min-h-screen items-center justify-center p-4">
       <div class="absolute right-4 top-4 z-10">
-        <app-language-switcher />
+        <app-language-switcher tone="gold" />
       </div>
-
-      <div class="animate-fade-in w-full max-w-md">
-        <div class="mb-8 text-center">
-          <h1 class="text-2xl font-bold text-white">{{ 'auth.register' | t }}</h1>
-          <p class="mt-2 text-sm text-slate-400">{{ 'auth.registerSubtitle' | t }}</p>
-        </div>
-
-        <div class="glass-card !bg-white/10 !border-white/10 p-8">
-          @if (error()) {
-            <div class="mb-4 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-400">{{ error() }}</div>
-          }
-
-          <form (ngSubmit)="onSubmit()" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="mb-1.5 block text-sm font-medium text-slate-300">{{ 'auth.firstName' | t }}</label>
-                <input [(ngModel)]="firstName" name="firstName" class="input-field !bg-white/5 !border-white/10 !text-white" required />
-              </div>
-              <div>
-                <label class="mb-1.5 block text-sm font-medium text-slate-300">{{ 'auth.lastName' | t }}</label>
-                <input [(ngModel)]="lastName" name="lastName" class="input-field !bg-white/5 !border-white/10 !text-white" required />
-              </div>
+      <div class="animate-fade-in w-full max-w-md rounded-[28px] bg-[#f7f3ea] p-7 text-ink shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
+        <h1 class="text-2xl font-extrabold">{{ 'auth.register' | t }}</h1>
+        <p class="mt-1 text-sm text-[#8a8175]">{{ 'auth.registerSubtitle' | t }}</p>
+        @if (error()) {
+          <div class="mt-4 rounded-2xl bg-red-500/10 px-4 py-3 text-sm text-red-600">{{ error() }}</div>
+        }
+        <form (ngSubmit)="onSubmit()" class="mt-6 space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="mb-1.5 block text-sm font-semibold text-[#5c5348]">{{ 'auth.firstName' | t }}</label>
+              <input [(ngModel)]="firstName" name="firstName" class="input-field" required />
             </div>
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-slate-300">{{ 'auth.email' | t }}</label>
-              <input type="email" [(ngModel)]="email" name="email" class="input-field !bg-white/5 !border-white/10 !text-white" required />
+              <label class="mb-1.5 block text-sm font-semibold text-[#5c5348]">{{ 'auth.lastName' | t }}</label>
+              <input [(ngModel)]="lastName" name="lastName" class="input-field" required />
             </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-slate-300">{{ 'auth.password' | t }}</label>
-              <app-password-input
-                [(value)]="password"
-                name="password"
-                [minlength]="8"
-                [required]="true"
-                extraClass="!bg-white/5 !border-white/10 !text-white"
-              />
-            </div>
-            <button type="submit" class="btn-primary w-full" [disabled]="loading()">
-              {{ loading() ? ('auth.registering' | t) : ('auth.register' | t) }}
-            </button>
-          </form>
-
-          <p class="mt-6 text-center text-sm text-slate-400">
-            {{ 'auth.hasAccount' | t }}
-            <a routerLink="/auth/login" class="font-semibold text-primary-400 hover:text-primary-300">{{ 'auth.login' | t }}</a>
-          </p>
-        </div>
+          </div>
+          <div>
+            <label class="mb-1.5 block text-sm font-semibold text-[#5c5348]">{{ 'auth.email' | t }}</label>
+            <input type="email" [(ngModel)]="email" name="email" class="input-field" required />
+          </div>
+          <div>
+            <label class="mb-1.5 block text-sm font-semibold text-[#5c5348]">{{ 'auth.password' | t }}</label>
+            <app-password-input [(value)]="password" name="password" [minlength]="8" [required]="true" />
+          </div>
+          <button type="submit" class="btn-primary w-full" [disabled]="loading()">
+            {{ loading() ? ('auth.registering' | t) : ('auth.register' | t) }}
+          </button>
+        </form>
+        <p class="mt-6 text-center text-sm text-[#8a8175]">
+          {{ 'auth.hasAccount' | t }}
+          <a routerLink="/auth/login" class="font-extrabold text-ink">{{ 'auth.login' | t }}</a>
+        </p>
       </div>
     </div>
   `,

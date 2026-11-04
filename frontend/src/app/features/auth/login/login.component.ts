@@ -16,53 +16,77 @@ import { PasswordInputComponent } from '../../../shared/components/password-inpu
   standalone: true,
   imports: [FormsModule, RouterLink, TranslatePipe, LanguageSwitcherComponent, PasswordInputComponent],
   template: `
-    <div class="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-primary-950 to-slate-900 p-4">
-      <div class="absolute right-4 top-4 z-10">
-        <app-language-switcher />
-      </div>
+    <div class="relative min-h-screen overflow-hidden text-white">
+      <img src="brand/ceo-ai-hero.jpg" alt="" class="absolute inset-0 h-full w-full object-cover object-[72%_center]" />
+      <div class="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-transparent"></div>
 
-      <div class="animate-fade-in w-full max-w-md">
-        <div class="mb-8 text-center">
-          <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 shadow-2xl shadow-primary-500/40">
-            <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
+      <header class="relative z-10 flex items-start justify-between gap-4 px-5 py-5 sm:px-8 lg:px-10">
+        <div class="flex items-center gap-3">
+          <img src="brand/ceo-ai-logo.png" alt="" class="h-14 w-14 object-contain [filter:drop-shadow(0_0_1px_#fff)_drop-shadow(0_0_10px_rgba(255,255,255,0.7))]" />
+          <span class="hidden h-9 w-px bg-white/35 sm:block"></span>
+          <div>
+            <div class="text-[26px] font-extrabold leading-none tracking-tight">{{ 'auth.heroTitle' | t }}</div>
+            <p class="mt-1 max-w-[240px] text-[11px] leading-snug text-white/75">{{ 'auth.tagline' | t }}</p>
           </div>
-          <h1 class="text-2xl font-bold text-white">{{ 'brand.title' | t }} {{ 'brand.subtitle' | t }}</h1>
-          <p class="mt-2 text-sm text-slate-400">{{ 'auth.tagline' | t }}</p>
         </div>
+        <app-language-switcher tone="gold" />
+      </header>
 
-        <div class="glass-card !bg-white/10 !border-white/10 p-8">
-          <h2 class="mb-6 text-xl font-semibold text-white">{{ 'auth.login' | t }}</h2>
+      <div class="relative z-10 flex min-h-[calc(100vh-5.5rem)] items-center justify-start px-4 pb-6 sm:px-8 lg:px-10">
+        <div class="animate-fade-in w-full max-w-[300px] rounded-[22px] bg-[#f6f1e6]/95 p-4 text-[#1c1915] shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-sm">
+          <h1 class="text-lg font-extrabold tracking-tight text-[#1c1915]">{{ 'auth.loginHeading' | t }}</h1>
 
           @if (error()) {
-            <div class="mb-4 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-400">{{ error() }}</div>
+            <div class="mt-4 rounded-2xl bg-red-500/10 px-4 py-3 text-sm text-red-600">{{ error() }}</div>
           }
 
-          <form (ngSubmit)="onSubmit()" class="space-y-4">
+          <form (ngSubmit)="onSubmit()" class="mt-3 space-y-2.5">
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-slate-300">{{ 'auth.email' | t }}</label>
-              <input type="email" [(ngModel)]="email" name="email" class="input-field !bg-white/5 !border-white/10 !text-white" [placeholder]="'auth.emailPlaceholder' | t" required />
+              <label class="mb-1.5 block text-sm font-semibold text-[#5c5348]">{{ 'auth.email' | t }}</label>
+              <div class="relative">
+                <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#b7ab9a]">
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l9 6 9-6M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z"/></svg>
+                </span>
+                <input type="email" [(ngModel)]="email" name="email" class="input-field !rounded-full !py-2 pl-11" [placeholder]="'auth.emailPlaceholder' | t" required />
+              </div>
             </div>
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-slate-300">{{ 'auth.password' | t }}</label>
-              <app-password-input
-                [(value)]="password"
-                name="password"
-                [placeholder]="'auth.passwordPlaceholder' | t"
-                [required]="true"
-                extraClass="!bg-white/5 !border-white/10 !text-white"
-              />
+              <label class="mb-1.5 block text-sm font-semibold text-[#5c5348]">{{ 'auth.password' | t }}</label>
+              <div class="relative">
+                <span class="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[#b7ab9a]">
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 11V8a4 4 0 118 0v3M6 11h12a1 1 0 011 1v7a1 1 0 01-1 1H6a1 1 0 01-1-1v-7a1 1 0 011-1z"/></svg>
+                </span>
+                <app-password-input [(value)]="password" name="password" [placeholder]="'auth.passwordPlaceholder' | t" [required]="true" extraClass="!rounded-full !py-2 pl-11" />
+              </div>
             </div>
-            <button type="submit" class="btn-primary w-full" [disabled]="loading()">
+            <div class="space-y-1.5 text-xs">
+              <label class="flex items-center gap-2 font-medium text-[#5c5348]">
+                <input type="checkbox" [(ngModel)]="remember" name="remember" class="h-4 w-4 shrink-0 rounded accent-[#e0a41e]" />
+                <span class="min-w-0 leading-snug">{{ 'auth.remember' | t }}</span>
+              </label>
+              <p class="text-right font-semibold leading-snug text-[#c99212]">{{ 'auth.forgot' | t }}</p>
+            </div>
+            <button type="submit" class="btn-primary w-full !py-2.5 text-sm" [disabled]="loading()">
               {{ loading() ? ('auth.loggingIn' | t) : ('auth.login' | t) }}
+              <span aria-hidden="true">→</span>
             </button>
           </form>
 
-          <p class="mt-6 text-center text-sm text-slate-400">
+          <p class="mt-3 text-center text-xs text-[#8a8175]">
             {{ 'auth.noAccount' | t }}
-            <a routerLink="/auth/register" class="font-semibold text-primary-400 hover:text-primary-300">{{ 'auth.register' | t }}</a>
+            <a routerLink="/auth/register" class="font-extrabold text-ink">{{ 'auth.register' | t }}</a>
           </p>
+        </div>
+
+        <div class="pointer-events-none absolute inset-y-16 right-0 hidden w-[52%] lg:block">
+          @for (chip of chips; track chip.key) {
+            <div class="absolute flex max-w-[180px] items-center gap-2.5 rounded-2xl border border-white/25 bg-white/10 px-3 py-2.5 text-[13px] font-semibold leading-tight text-white shadow-lg backdrop-blur-md" [class]="chip.pos">
+              <svg class="h-5 w-5 shrink-0 text-[#f3c85a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="chip.icon" />
+              </svg>
+              <span>{{ chip.key | t }}</span>
+            </div>
+          }
         </div>
       </div>
     </div>
@@ -77,7 +101,16 @@ export class LoginComponent {
 
   email = '';
   password = '';
+  remember = false;
   loading = signal(false);
+  readonly chips = [
+    { key: 'auth.feat.analysis', icon: 'M4 19V5m0 14h16M8 16l3-4 3 2 4-6', pos: 'left-[6%] top-[8%]' },
+    { key: 'auth.feat.team', icon: 'M16 19v-1a4 4 0 00-4-4H8a4 4 0 00-4 4v1M10 11a3 3 0 100-6 3 3 0 000 6zM19 19v-1a3 3 0 00-2-2.8', pos: 'left-[2%] top-[38%]' },
+    { key: 'auth.feat.process', icon: 'M4 7h16M4 12h16M4 17h10', pos: 'left-[8%] bottom-[16%]' },
+    { key: 'auth.feat.finance', icon: 'M12 3v18M7 8c0-2 2-3 5-3s5 1 5 3-2 3-5 3-5 1-5 3 2 3 5 3 5-1 5-3', pos: 'right-[4%] top-[10%]' },
+    { key: 'auth.feat.marketing', icon: 'M4 10v4h4l5 4V6L8 10H4zM16 9a4 4 0 010 6', pos: 'right-[0%] top-[42%]' },
+    { key: 'auth.feat.growth', icon: 'M4 16l5-5 3 3 7-8M14 6h6v6', pos: 'right-[6%] bottom-[14%]' },
+  ];
   error = signal('');
 
   onSubmit() {

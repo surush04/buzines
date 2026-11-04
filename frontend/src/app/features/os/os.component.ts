@@ -14,9 +14,36 @@ type Tab = 'control' | 'workflows' | 'memory' | 'verify' | 'workload' | 'sim' | 
   imports: [FormsModule, DatePipe, JsonPipe, TranslatePipe],
   template: `
     <div class="space-y-6 animate-fade-in">
+      <div class="grid items-center gap-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
+        <div>
+          <div class="mb-3 h-1 w-10 rounded-full bg-[#e4b12f]"></div>
+          <h1 class="text-3xl font-extrabold tracking-tight">{{ 'os.brainTitle' | t }}</h1>
+          <p class="mt-2 text-sm text-[#8a8175]">{{ 'os.brainLead' | t }}</p>
+          <p class="mt-4 text-xs font-extrabold uppercase tracking-wide text-[#8a8175]">{{ 'os.streams' | t }}</p>
+          <div class="mt-2 space-y-2">
+            @for (label of ['CRM', 'KPI', 'Finance', 'Team']; track label) {
+              <div class="rounded-2xl border border-[#efe6d6] bg-white px-3 py-2 text-sm font-semibold dark:border-white/10 dark:bg-[#221e19]">{{ label }}</div>
+            }
+          </div>
+        </div>
+        <div class="relative mx-auto flex h-72 w-72 items-center justify-center">
+          <div class="absolute inset-6 rounded-full bg-[#f3c85a]/30 blur-2xl"></div>
+          <div class="relative flex h-56 w-56 items-center justify-center rounded-full bg-[radial-gradient(circle_at_30%_30%,#fff,#1c1915_55%,#e4b12f)] shadow-[0_20px_60px_rgba(228,177,47,0.35)]">
+            <span class="text-2xl font-extrabold text-white">CEO AI</span>
+          </div>
+        </div>
+        <div class="glass-card p-5">
+          <div class="mb-4 flex items-center justify-between">
+            <p class="font-extrabold">{{ 'os.title' | t }}</p>
+            <span class="text-xs font-bold text-emerald-600">{{ 'os.online' | t }}</span>
+          </div>
+          <p class="text-4xl font-extrabold text-[#e0a41e]">{{ center()?.failedOps ?? 0 }}</p>
+          <p class="text-xs text-[#8a8175]">{{ 'os.subtitle' | t }}</p>
+        </div>
+      </div>
       <div>
-        <h1 class="text-2xl font-bold">{{ 'os.title' | t }}</h1>
-        <p class="text-sm text-slate-500">{{ 'os.subtitle' | t }}</p>
+        <h2 class="text-lg font-extrabold">{{ 'os.title' | t }}</h2>
+        <p class="text-sm text-[#8a8175]">{{ 'os.subtitle' | t }}</p>
       </div>
       @if (error()) {
         <p class="text-sm text-red-500">{{ error() }}</p>
