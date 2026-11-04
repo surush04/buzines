@@ -29,14 +29,16 @@ services:
       - key: JWT_REFRESH_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://buzines-web.onrender.com
+        value: https://buzines.onrender.com
+      - key: CORS_ORIGINS
+        value: https://buzines.onrender.com,https://buzines-web.onrender.com
       - key: GROQ_API_KEY
         sync: false
       - key: AI_PROVIDER
         value: groq
 
   - type: web
-    name: buzines-web
+    name: buzines
     runtime: static
     rootDir: frontend
     plan: free

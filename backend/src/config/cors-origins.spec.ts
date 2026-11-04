@@ -13,6 +13,11 @@ describe('CORS origins', () => {
     expect(allow('http://localhost:4201')).toBe(true);
   });
 
+  it('allows the Render frontend', () => {
+    expect(allow('https://buzines.onrender.com')).toBe(true);
+    expect(allow('https://buzines-web.onrender.com')).toBe(true);
+  });
+
   it('rejects arbitrary sites', () => {
     expect(allow('https://evil.example')).toBe(false);
   });

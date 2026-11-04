@@ -7,7 +7,7 @@ The root `render.yaml` defines the Angular static site, NestJS API, and PostgreS
 1. Push the repository to GitHub and connect it in Render with **New → Blueprint**.
 2. Select the repository root so Render detects `render.yaml`.
 3. Set `GROQ_API_KEY` when prompted, or add it later under the API service's environment variables. Without an AI provider key, AI-generated features will not work.
-4. Wait for the database, API health check, and static site deploys to finish. Use the URLs shown in Render; the Blueprint defaults to `https://buzines-web.onrender.com` and `https://buzines-api.onrender.com`.
+4. Wait for the database, API health check, and static site deploys to finish. Use the URLs shown in Render; the Blueprint defaults to `https://buzines.onrender.com` and `https://buzines-api.onrender.com`.
 5. To copy the current local SQLite account and company, follow the transfer steps below after Render creates the database.
 
 This Blueprint intentionally uses Render's free plans for testing. Free web services can spin down while idle, and free PostgreSQL databases expire after 30 days. After expiration, the database is inaccessible; after the grace period Render deletes it. Upgrade the database before that deadline if the data must be retained. Do not use this free configuration for production business data.

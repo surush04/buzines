@@ -24,6 +24,7 @@ export function buildCorsOriginChecker(
     /^https?:\/\/localhost(:\d+)?$/,
     /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
     /^https:\/\/[^/]+\.vercel\.app$/,
+    /^https:\/\/[^/]+\.onrender\.com$/,
     /^https:\/\/[^/]+\.trycloudflare\.com$/,
   ];
 
