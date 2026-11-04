@@ -15,7 +15,7 @@ echo "[buzines-api] PostgreSQL database configured"
 # ended with a stray "\n". Postgres rolled that transaction back. Remove only
 # the unfinished row so the corrected file can be applied.
 printf '%s\n' "DELETE FROM \"_prisma_migrations\" WHERE migration_name = '20261103220000_init' AND finished_at IS NULL AND rolled_back_at IS NULL;" \
-  | npx prisma db execute --stdin \
+  | npx prisma db execute --stdin --schema prisma/schema.prisma \
   || echo "[buzines-api] failed-migration cleanup skipped"
 
 npx prisma migrate deploy
