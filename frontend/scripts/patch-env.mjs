@@ -1,14 +1,17 @@
 import fs from 'node:fs';
 
 const envFile = 'src/environments/environment.production.ts';
-const removedRailwayApi = 'https://buzines-api-production.up.railway.app';
-const renderApiUrl = 'https://buzines-api.onrender.com/api/v1';
-const configuredApiUrl = process.env.API_URL?.trim();
-const apiUrl =
-  configuredApiUrl === removedRailwayApi ||
-  configuredApiUrl === `${removedRailwayApi}/api/v1`
-    ? renderApiUrl
-    : configuredApiUrl;
+const liveApiUrl = 'https://buzines-1.onrender.com/api/v1';
+const offlineHosts = [
+  'https://buzines-api-production.up.railway.app',
+  'https://buzines-api.onrender.com',
+];
+const configuredApiUrl = process.env.API_URL?.trim()?.replace(/\/$/, '');
+const apiUrl = offlineHosts.some(
+  (host) => configuredApiUrl === host || configuredApiUrl === `${host}/api/v1`,
+)
+  ? liveApiUrl
+  : configuredApiUrl;
 const wsOverride = process.env.WS_URL?.trim();
 
 if (configuredApiUrl && configuredApiUrl !== apiUrl) {

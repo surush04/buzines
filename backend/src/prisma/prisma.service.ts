@@ -12,7 +12,8 @@ export class PrismaService
   constructor() {
     const url = resolveSqliteFileUrl(process.env.DATABASE_URL);
     super(url ? { datasources: { db: { url } } } : undefined);
-    if (url) this.logger.log(`SQLite: ${url}`);
+    if (url?.startsWith('file:')) this.logger.log('SQLite database configured');
+    else if (url) this.logger.log('PostgreSQL database configured');
   }
 
   async onModuleInit() {

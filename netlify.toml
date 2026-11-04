@@ -1,7 +1,7 @@
 # Frontend only. NestJS API + Groq AI must run on Render (see render.yaml).
 # Netlify site settings:
 #   Base directory: frontend
-#   Environment: API_URL = https://buzines-api.onrender.com/api/v1
+#   Environment: API_URL = https://buzines-1.onrender.com/api/v1
 
 [build]
   base = "frontend"
@@ -10,7 +10,7 @@
 
 [build.environment]
   NODE_VERSION = "22"
-  API_URL = "https://buzines-api.onrender.com/api/v1"
+  API_URL = "https://buzines-1.onrender.com/api/v1"
 
 [[redirects]]
   from = "/*"

@@ -51,7 +51,7 @@ services:
       - key: NODE_VERSION
         value: "22"
       - key: API_URL
-        value: https://buzines-api.onrender.com/api/v1
+        value: https://buzines-1.onrender.com/api/v1
     routes:
       - type: rewrite
         source: /*
